@@ -40,6 +40,27 @@ interface SnEntry {
   reasoning?: boolean
   reasoningEfforts?: string[]
   contextWindow?: number
+  maxOutputTokens?: number
+  hidden?: boolean
+}
+
+interface GatewayPricingEntry {
+  canonicalId: string
+  order: string[]
+  providers: Record<string, { promptCost: number; completionCost: number; cacheReadCost: number; cacheWriteCost?: number }>
+}
+
+interface OpenRouterPricingEntry {
+  canonicalId: string
+  order: string[]
+  providers: Record<string, { promptCost: number; completionCost: number; cacheReadCost: number }>
+}
+
+interface SimplePricingEntry {
+  canonicalId: string
+  promptCost: number
+  completionCost: number
+  cacheReadCost?: number
 }
 
 const FALLBACK_COSTS: Record<string, { input: number; output: number; cache_read?: number; cache_write?: number }> = {
@@ -80,18 +101,6 @@ const FALLBACK_LIMITS: Record<string, { context: number; output: number }> = {
   "google/gemini-3.1-flash-lite": { context: 1000000, output: 65536 },
 }
 
-const HARDCODED_EXTRAS: SnEntry[] = [
-  {
-    id: "Qwen/Qwen3.7-Max",
-    provider: "vercel-ai-gateway",
-    spec: "chatComplete",
-    label: "Qwen 3.7 Max",
-    name: "Qwen 3.7 Max",
-    description: "latest Qwen Max model",
-    reasoning: true,
-  },
-]
-
 const TIER_MAP: Record<string, "premium" | "open-source"> = {
   "anthropic": "premium",
   "openai": "premium",
@@ -99,6 +108,10 @@ const TIER_MAP: Record<string, "premium" | "open-source"> = {
   "vercel-ai-gateway": "open-source",
   "openrouter": "open-source",
   "cloudflare-ai-gateway": "open-source",
+  "novita": "open-source",
+  "alibaba": "open-source",
+  "morph": "open-source",
+  "cmd-ai": "open-source",
 }
 
 async function fetchLatestBundle(): Promise<{ source: string; version: string }> {
@@ -123,8 +136,17 @@ async function fetchLatestBundle(): Promise<{ source: string; version: string }>
   console.log("Extracting...")
   execSync(`tar -xzf "${tgzPath}" -C "${TMP_DIR}"`, { stdio: "pipe" })
 
-  const bundlePath = join(TMP_DIR, "package", "dist", "index.mjs")
-  if (!existsSync(bundlePath)) throw new Error(`Bundle not found at ${bundlePath}`)
+  const distDir = join(TMP_DIR, "package", "dist")
+  const candidates = ["cli.mjs", "index.mjs"]
+  let bundlePath: string | undefined
+  for (const candidate of candidates) {
+    const p = join(distDir, candidate)
+    if (existsSync(p)) {
+      bundlePath = p
+      break
+    }
+  }
+  if (!bundlePath) throw new Error(`Bundle not found in ${distDir} (tried ${candidates.join(", ")})`)
 
   const source = readFileSync(bundlePath, "utf-8")
 
@@ -133,28 +155,25 @@ async function fetchLatestBundle(): Promise<{ source: string; version: string }>
   return { source, version }
 }
 
-function findBalancedObject(source: string, anchor: string): string {
+function findBalancedAt(source: string, anchor: string, open: string, close: string): string {
   const anchorIdx = source.indexOf(anchor)
   if (anchorIdx < 0) throw new Error(`Anchor not found: ${anchor}`)
 
-  let parenIdx = anchorIdx - 1
-  while (parenIdx >= 0 && source[parenIdx] !== "(") parenIdx--
-  if (parenIdx < 0) throw new Error(`Could not find opening ( before anchor: ${anchor}`)
-
-  const braceStart = source.indexOf("{", parenIdx)
-  if (braceStart < 0) throw new Error(`Could not find { after opening (`)
+  const start = source.indexOf(open, anchorIdx)
+  if (start < 0) throw new Error(`No ${open} found after anchor: ${anchor}`)
 
   let depth = 0
-  let end = braceStart
+  let end = start
   for (; end < source.length; end++) {
-    if (source[end] === "{") depth++
-    else if (source[end] === "}") {
+    if (source[end] === open) depth++
+    else if (source[end] === close) {
       depth--
       if (depth === 0) break
     }
   }
+  if (depth !== 0) throw new Error(`Unbalanced ${open} after anchor: ${anchor}`)
 
-  return source.slice(braceStart, end + 1)
+  return source.slice(start, end + 1)
 }
 
 function evaluateWithContext(code: string, context: Record<string, unknown>): any {
@@ -164,85 +183,6 @@ function evaluateWithContext(code: string, context: Record<string, unknown>): an
   return fn(...values)
 }
 
-function extractWt(source: string): Record<string, string> {
-  const raw = findBalancedObject(source, 'ANTHROPIC:"anthropic"')
-  return evaluateWithContext(normalizeForEval(raw), {})
-}
-
-function extractSpecConstants(source: string): { chatComplete: string; responses: string; qt: string } {
-  const anchorIdx = source.indexOf('SONNET_4_6:{id:"claude-sonnet-4-6"')
-  if (anchorIdx < 0) throw new Error("Could not find model catalog anchor")
-
-  const before = source.slice(Math.max(0, anchorIdx - 5000), anchorIdx)
-
-  const chatMatch = before.match(/([A-Za-z_$]+)="chatComplete"/)
-  const respMatch = before.match(/([A-Za-z_$]+)="responses"/)
-  if (!chatMatch || !respMatch) throw new Error("Could not find spec constants")
-
-  const qtMatch = before.match(/([A-Za-z_$]+)=Vt\[0\]/)
-  const qtVar = qtMatch ? qtMatch[1] : null
-
-  return {
-    chatComplete: chatMatch[1],
-    responses: respMatch[1],
-    qt: qtVar || "",
-  }
-}
-
-function extractModelCatalog(
-  source: string,
-  wt: Record<string, string>,
-  wtName: string,
-  spec: ReturnType<typeof extractSpecConstants>,
-): Record<string, SnEntry> {
-  const raw = findBalancedObject(source, 'SONNET_4_6:{id:"claude-sonnet-4-6"')
-  const ctx: Record<string, unknown> = { [wtName]: wt }
-  ctx[spec.chatComplete] = "chatComplete"
-  ctx[spec.responses] = "responses"
-  if (spec.qt) ctx[spec.qt] = wt.VERCEL_AI_GATEWAY
-  return evaluateWithContext(normalizeForEval(raw), ctx)
-}
-
-function extractCostData(source: string, wt: Record<string, string>, wtName: string): Record<string, CostEntry[]> {
-  const anchor = '{id:"anthropic:claude-sonnet-4-'
-  const anchorIdx = source.indexOf(anchor)
-  if (anchorIdx < 0) throw new Error("Could not find cost data anchor")
-
-  let braceDepth = 0
-  let start = anchorIdx - 1
-  for (; start >= 0; start--) {
-    if (source[start] === "}") braceDepth++
-    else if (source[start] === "{") {
-      if (braceDepth === 0) break
-      braceDepth--
-    }
-  }
-
-  let depth = 0
-  let end = start
-  for (; end < source.length; end++) {
-    if (source[end] === "{") depth++
-    else if (source[end] === "}") {
-      depth--
-      if (depth === 0) break
-    }
-  }
-
-  const raw = source.slice(start, end + 1)
-  return evaluateWithContext(normalizeForEval(raw), { [wtName]: wt }) as Record<string, CostEntry[]>
-}
-
-function getWtVarName(source: string): string {
-  const idx = source.indexOf('ANTHROPIC:"anthropic"')
-  if (idx < 0) throw new Error("Could not find Wt enum")
-  const before = source.slice(Math.max(0, idx - 50), idx)
-  const match = before.match(/\(([A-Za-z_$]+)=\{$/)
-  if (match) return match[1]
-  const match2 = before.match(/([A-Za-z_$]+)=\{$/)
-  if (match2) return match2[1]
-  throw new Error("Could not determine Wt variable name")
-}
-
 function normalizeForEval(code: string): string {
   return code
     .replace(/!0/g, "true")
@@ -250,50 +190,174 @@ function normalizeForEval(code: string): string {
     .replace(/(\d+)e(\d+)/g, (_: string, m: string, e: string) =>
       String(Number(m) * Math.pow(10, Number(e)))
     )
+    .replace(/get\s+hidden\s*\(\s*\)\s*\{[^}]*\}/g, "hidden: true")
 }
 
-function buildCostMap(costs: Record<string, CostEntry[]>): Map<string, CostEntry> {
-  const map = new Map<string, CostEntry>()
-  for (const arr of Object.values(costs)) {
-    for (const entry of arr) {
-      const colonIdx = entry.id.indexOf(":")
-      const bareId = colonIdx >= 0 ? entry.id.slice(colonIdx + 1) : entry.id
-      map.set(bareId, entry)
+function extractProviderConstants(source: string): Record<string, string> {
+  const start = source.indexOf('var FA="anthropic"')
+  if (start < 0) throw new Error("Could not find provider constants (var FA=...)")
+
+  const yaIdx = source.indexOf("YA={", start)
+  if (yaIdx < 0) throw new Error("Could not find cost object (YA=)")
+
+  const block = source.slice(start, yaIdx)
+  const consts: Record<string, string> = {}
+  for (const m of block.matchAll(/([A-Za-z_$]+)="([^"]+)"/g)) consts[m[1]] = m[2]
+
+  const alias = block.match(/KA=([A-Za-z_$]+)/)
+  if (alias && consts[alias[1]]) consts.KA = consts[alias[1]]
+
+  return consts
+}
+
+function extractSpecConstants(source: string): Record<string, string> {
+  const start = source.indexOf('var JA="chatComplete"')
+  if (start < 0) throw new Error("Could not find spec constants (var JA=...)")
+
+  const zaIdx = source.indexOf("ZA={", start)
+  if (zaIdx < 0) throw new Error("Could not find model catalog (ZA=)")
+
+  const block = source.slice(start, zaIdx)
+  const out: Record<string, string> = {}
+  for (const m of block.matchAll(/([A-Za-z_$]+)="([^"]+)"/g)) out[m[1]] = m[2]
+  return out
+}
+
+function extractModelCatalog(source: string, consts: Record<string, string>): Record<string, SnEntry> {
+  const raw = findBalancedAt(source, "ZA={", "{", "}")
+  return evaluateWithContext(normalizeForEval(raw), consts)
+}
+
+function extractCostData(source: string, consts: Record<string, string>): {
+  ya: Record<string, CostEntry[]>
+  tR: GatewayPricingEntry[]
+  oR: OpenRouterPricingEntry[]
+  nR: SimplePricingEntry[]
+  rR: SimplePricingEntry[]
+} {
+  const yaRaw = findBalancedAt(source, "YA={", "{", "}")
+  const ya = evaluateWithContext(normalizeForEval(yaRaw), consts) as Record<string, CostEntry[]>
+
+  const tR = evaluateWithContext(
+    normalizeForEval(findBalancedAt(source, "tR=[", "[", "]")),
+    consts,
+  ) as GatewayPricingEntry[]
+
+  const oR = evaluateWithContext(
+    normalizeForEval(findBalancedAt(source, "oR=[", "[", "]")),
+    consts,
+  ) as OpenRouterPricingEntry[]
+
+  const nR = evaluateWithContext(
+    normalizeForEval(findBalancedAt(source, "nR=[", "[", "]")),
+    consts,
+  ) as SimplePricingEntry[]
+
+  const rR = evaluateWithContext(
+    normalizeForEval(findBalancedAt(source, "rR=[", "[", "]")),
+    consts,
+  ) as SimplePricingEntry[]
+
+  return { ya, tR, oR, nR, rR }
+}
+
+function stripProviderPrefix(id: string): string {
+  const colonIdx = id.indexOf(":")
+  return colonIdx >= 0 ? id.slice(colonIdx + 1) : id
+}
+
+function findDirectCost(id: string, ya: Record<string, CostEntry[]>): CostEntry | undefined {
+  for (const arr of Object.values(ya)) {
+    const entry = arr.find((e) => stripProviderPrefix(e.id) === id)
+    if (entry) return entry
+  }
+  return undefined
+}
+
+function resolveCost(id: string, data: ReturnType<typeof extractCostData>): {
+  input: number
+  output: number
+  cache_read?: number
+  cache_write?: number
+} | null {
+  const direct = findDirectCost(id, data.ya)
+  if (direct) {
+    return {
+      input: direct.promptCost,
+      output: direct.completionCost,
+      cache_read: direct.cacheHitCost > 0 ? direct.cacheHitCost : undefined,
+      cache_write: direct.cacheWrite5mCost > 0 ? direct.cacheWrite5mCost : undefined,
     }
   }
-  return map
+
+  const gateway = data.tR.find((e) => e.canonicalId === id)
+  if (gateway) {
+    const primary = gateway.providers[gateway.order[0]]
+    if (primary) {
+      return {
+        input: primary.promptCost,
+        output: primary.completionCost,
+        cache_read: primary.cacheReadCost > 0 ? primary.cacheReadCost : undefined,
+        cache_write: primary.cacheWriteCost && primary.cacheWriteCost > 0 ? primary.cacheWriteCost : undefined,
+      }
+    }
+  }
+
+  const openrouter = data.oR.find((e) => e.canonicalId === id)
+  if (openrouter) {
+    const primary = openrouter.providers[openrouter.order[0]]
+    if (primary) {
+      return {
+        input: primary.promptCost,
+        output: primary.completionCost,
+        cache_read: primary.cacheReadCost > 0 ? primary.cacheReadCost : undefined,
+      }
+    }
+  }
+
+  const alibaba = data.nR.find((e) => e.canonicalId === id)
+  if (alibaba) {
+    return {
+      input: alibaba.promptCost,
+      output: alibaba.completionCost,
+      cache_read: alibaba.cacheReadCost && alibaba.cacheReadCost > 0 ? alibaba.cacheReadCost : undefined,
+    }
+  }
+
+  const morph = data.rR.find((e) => e.canonicalId === id)
+  if (morph) {
+    return {
+      input: morph.promptCost,
+      output: morph.completionCost,
+      cache_read: morph.cacheReadCost && morph.cacheReadCost > 0 ? morph.cacheReadCost : undefined,
+    }
+  }
+
+  return null
+}
+
+function tierFor(id: string, provider: string, data: ReturnType<typeof extractCostData>): "premium" | "open-source" {
+  const direct = findDirectCost(id, data.ya)
+  if (direct) return direct.category === "premium" ? "premium" : "open-source"
+  return TIER_MAP[provider] ?? "open-source"
 }
 
 function buildModelEntry(
   entry: SnEntry,
-  costMap: Map<string, CostEntry>,
+  data: ReturnType<typeof extractCostData>,
 ): ModelEntry | null {
-  const provider = entry.provider || "unknown"
-  const tier = TIER_MAP[provider] ?? "open-source"
+  const cost = resolveCost(entry.id, data) ?? FALLBACK_COSTS[entry.id]
+  if (!cost) return null
 
-  const costEntry = costMap.get(entry.id)
-  let cost: { input: number; output: number; cache_read?: number; cache_write?: number }
-  if (costEntry) {
-    cost = {
-      input: costEntry.promptCost,
-      output: costEntry.completionCost,
-    }
-    if (costEntry.cacheHitCost > 0) cost.cache_read = costEntry.cacheHitCost
-    if (costEntry.cacheWrite5mCost > 0) cost.cache_write = costEntry.cacheWrite5mCost
-  } else {
-    const fallback = FALLBACK_COSTS[entry.id]
-    if (!fallback) return null
-    cost = fallback
+  const limit = {
+    context: entry.contextWindow ?? FALLBACK_LIMITS[entry.id]?.context ?? 200000,
+    output: entry.maxOutputTokens ?? FALLBACK_LIMITS[entry.id]?.output ?? 65536,
   }
-
-  const limit = entry.contextWindow
-    ? { context: entry.contextWindow, output: FALLBACK_LIMITS[entry.id]?.output ?? 65536 }
-    : FALLBACK_LIMITS[entry.id] ?? { context: 200000, output: 65536 }
 
   return {
     id: entry.id,
     name: entry.name,
-    tier,
+    tier: tierFor(entry.id, entry.provider, data),
     reasoning: entry.reasoning || (entry.reasoningEfforts?.length ?? 0) > 0,
     tool_call: true,
     cost,
@@ -394,43 +458,33 @@ async function main() {
   const { source, version } = await fetchLatestBundle()
   console.log(`Read CLI bundle v${version} (${(source.length / 1024).toFixed(0)} KB)`)
 
-  console.log("Extracting provider enum (Wt)...")
-  const wt = extractWt(source)
-  const wtName = getWtVarName(source)
-  console.log(`  Provider enum var: ${wtName}, keys: ${Object.keys(wt).join(", ")}`)
-
-  console.log("Extracting spec constants...")
-  const spec = extractSpecConstants(source)
-  console.log(`  chatComplete=${spec.chatComplete}, responses=${spec.responses}, qt=${spec.qt || "(none)"}`)
-
-  console.log("Extracting model catalog...")
-  const models = extractModelCatalog(source, wt, wtName, spec)
-  const modelCount = Object.keys(models).length
-  console.log(`  Found ${modelCount} models`)
+  console.log("Extracting provider constants...")
+  const consts = extractProviderConstants(source)
+  Object.assign(consts, extractSpecConstants(source))
+  console.log(`  Provider consts: ${Object.keys(consts).join(", ")}`)
 
   console.log("Extracting cost data...")
-  const costs = extractCostData(source, wt, wtName)
-  const costMap = buildCostMap(costs)
-  console.log(`  Found ${costMap.size} cost entries`)
+  const data = extractCostData(source, consts)
+  const directCount = Object.values(data.ya).flat().length
+  console.log(`  Direct entries: ${directCount}, gateway: ${data.tR.length}, openrouter: ${data.oR.length}, alibaba: ${data.nR.length}, morph: ${data.rR.length}`)
+
+  console.log("Extracting model catalog...")
+  const models = extractModelCatalog(source, consts)
+  const modelCount = Object.keys(models).length
+  console.log(`  Found ${modelCount} models`)
 
   const entries: ModelEntry[] = []
 
   for (const [, model] of Object.entries(models)) {
-    const entry = buildModelEntry(model, costMap)
+    if (model.hidden) {
+      console.log(`  Skipping hidden model: ${model.id}`)
+      continue
+    }
+    const entry = buildModelEntry(model, data)
     if (entry) {
       entries.push(entry)
     } else {
       console.warn(`  Skipping ${model.id}: no cost data`)
-    }
-  }
-
-  for (const extra of HARDCODED_EXTRAS) {
-    if (!entries.some((e) => e.id === extra.id)) {
-      const entry = buildModelEntry(extra, costMap)
-      if (entry) {
-        console.log(`  Adding hardcoded extra: ${extra.id}`)
-        entries.push(entry)
-      }
     }
   }
 
