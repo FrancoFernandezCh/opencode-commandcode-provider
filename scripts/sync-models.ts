@@ -71,9 +71,13 @@ const FALLBACK_COSTS: Record<string, { input: number; output: number; cache_read
   "Qwen/Qwen3.6-Max-Preview": { input: 1.3, output: 7.8, cache_read: 0.26, cache_write: 1.63 },
   "Qwen/Qwen3.6-Plus": { input: 0.5, output: 3, cache_read: 0.1 },
   "Qwen/Qwen3.7-Max": { input: 1.25, output: 3.75, cache_read: 0.25, cache_write: 1.56 },
+  "Qwen/Qwen3.8-Max": { input: 2, output: 6, cache_read: 0.25, cache_write: 2.5 },
+  "Qwen/Qwen3.8-27B": { input: 0.4, output: 3, cache_read: 0.04 },
   "stepfun/Step-3.5-Flash": { input: 0.1, output: 0.3, cache_read: 0.02 },
   "google/gemini-3.5-flash": { input: 1.5, output: 9, cache_read: 0.15 },
   "google/gemini-3.1-flash-lite": { input: 0.25, output: 1.5, cache_read: 0.03 },
+  "stealth/ox-alpha": { input: 0, output: 0 },
+  "inclusionai/ling-3.0-flash-free": { input: 0, output: 0 },
 }
 
 const FALLBACK_LIMITS: Record<string, { context: number; output: number }> = {
@@ -96,9 +100,12 @@ const FALLBACK_LIMITS: Record<string, { context: number; output: number }> = {
   "Qwen/Qwen3.6-Max-Preview": { context: 1000000, output: 131072 },
   "Qwen/Qwen3.6-Plus": { context: 1000000, output: 131072 },
   "Qwen/Qwen3.7-Max": { context: 1000000, output: 131072 },
+  "Qwen/Qwen3.8-27B": { context: 262144, output: 32768 },
   "stepfun/Step-3.5-Flash": { context: 1000000, output: 131072 },
   "google/gemini-3.5-flash": { context: 1000000, output: 65536 },
   "google/gemini-3.1-flash-lite": { context: 1000000, output: 65536 },
+  "stealth/ox-alpha": { context: 1048576, output: 131072 },
+  "inclusionai/ling-3.0-flash-free": { context: 256000, output: 32768 },
 }
 
 const TIER_MAP: Record<string, "premium" | "open-source"> = {
@@ -193,39 +200,163 @@ function normalizeForEval(code: string): string {
     .replace(/get\s+hidden\s*\(\s*\)\s*\{[^}]*\}/g, "hidden: true")
 }
 
+// --- Dynamic extraction helpers ---
+
 function extractProviderConstants(source: string): Record<string, string> {
+  // Try dynamic detection (minified var names change per build)
+  try {
+    // Find direct costs var via anthropic id pattern - most stable
+    const directMatch = source.match(/([$A-Za-z_][\w$]*)=\{\[([$A-Za-z_][\w$]*)\]:\[\{id:"anthropic:/)
+    if (directMatch) {
+      const directVar = directMatch[1]
+      const anthroVar = directMatch[2]
+      const provBlockStart = source.indexOf(`var ${anthroVar}="anthropic"`)
+      if (provBlockStart >= 0) {
+        const provBlockEnd = source.indexOf(`${directVar}={` , provBlockStart)
+        if (provBlockEnd >= 0) {
+          const block = source.slice(provBlockStart, provBlockEnd)
+          const consts: Record<string, string> = {}
+          for (const m of block.matchAll(/([$A-Za-z_][\w$]*)="([^"]+)"/g)) consts[m[1]] = m[2]
+          // alias like PR=wR
+          for (const m of block.matchAll(/([$A-Za-z_][\w$]*)=([$A-Za-z_][\w$]*)\s*[,;}\]]/g)) {
+            const v = m[1], rhs = m[2]
+            if (consts[rhs] && !consts[v]) consts[v] = consts[rhs]
+          }
+          if (Object.keys(consts).length > 0) return consts
+        }
+      }
+    }
+    // Fallback: scan for any anthropic var block via generic search
+    const anthroMatch = source.match(/var\s+([$A-Za-z_][\w$]*)="anthropic"/)
+    if (anthroMatch) {
+      const anthroVar = anthroMatch[1]
+      const directVarMatch = source.match(new RegExp(`([$A-Za-z_][\\w$]*)=\\{\\[${anthroVar.replace(/\$/g, "\\$")}\\]:\\[`))
+      if (directVarMatch) {
+        const directVar = directVarMatch[1]
+        const provBlockStart2 = source.indexOf(`var ${anthroVar}="anthropic"`)
+        const provBlockEnd2 = source.indexOf(`${directVar}={` , provBlockStart2)
+        if (provBlockStart2 >= 0 && provBlockEnd2 >= 0) {
+          const block = source.slice(provBlockStart2, provBlockEnd2)
+          const consts: Record<string, string> = {}
+          for (const m of block.matchAll(/([$A-Za-z_][\w$]*)="([^"]+)"/g)) consts[m[1]] = m[2]
+          for (const m of block.matchAll(/([$A-Za-z_][\w$]*)=([$A-Za-z_][\w$]*)\s*[,;}\]]/g)) {
+            if (consts[m[2]] && !consts[m[1]]) consts[m[1]] = consts[m[2]]
+          }
+          if (Object.keys(consts).length > 0) return consts
+        }
+      }
+    }
+  } catch (_) {
+    // fall through to legacy
+  }
+
+  // Legacy hardcoded fallback (for older bundles)
   const start = source.indexOf('var FA="anthropic"')
-  if (start < 0) throw new Error("Could not find provider constants (var FA=...)")
-
-  const yaIdx = source.indexOf("YA={", start)
-  if (yaIdx < 0) throw new Error("Could not find cost object (YA=)")
-
-  const block = source.slice(start, yaIdx)
-  const consts: Record<string, string> = {}
-  for (const m of block.matchAll(/([A-Za-z_$]+)="([^"]+)"/g)) consts[m[1]] = m[2]
-
-  const alias = block.match(/KA=([A-Za-z_$]+)/)
-  if (alias && consts[alias[1]]) consts.KA = consts[alias[1]]
-
-  return consts
+  if (start >= 0) {
+    const yaIdx = source.indexOf("YA={", start)
+    if (yaIdx >= 0) {
+      const block = source.slice(start, yaIdx)
+      const consts: Record<string, string> = {}
+      for (const m of block.matchAll(/([A-Za-z_$]+)="([^"]+)"/g)) consts[m[1]] = m[2]
+      const alias = block.match(/KA=([A-Za-z_$]+)/)
+      if (alias && consts[alias[1]]) consts.KA = consts[alias[1]]
+      return consts
+    }
+  }
+  throw new Error("Could not find provider constants (dynamic and legacy failed)")
 }
 
 function extractSpecConstants(source: string): Record<string, string> {
+  try {
+    const chatMatch = source.match(/var\s+([$A-Za-z_][\w$]*)="chatComplete"/)
+    if (chatMatch) {
+      const chatVar = chatMatch[1]
+      const catMatch = source.match(/([$A-Za-z_][\w$]*)=\{[A-Z0-9_]+:\{id:"claude/)
+      if (catMatch) {
+        const catVar = catMatch[1]
+        const specBlockStart = source.indexOf(`var ${chatVar}="chatComplete"`)
+        const specBlockEnd = source.indexOf(`${catVar}={` , specBlockStart)
+        if (specBlockStart >= 0 && specBlockEnd >= 0) {
+          const block = source.slice(specBlockStart, specBlockEnd)
+          const out: Record<string, string> = {}
+          for (const m of block.matchAll(/([$A-Za-z_][\w$]*)="([^"]+)"/g)) out[m[1]] = m[2]
+          if (Object.keys(out).length > 0) return out
+        }
+      }
+    }
+  } catch (_) {}
+
   const start = source.indexOf('var JA="chatComplete"')
-  if (start < 0) throw new Error("Could not find spec constants (var JA=...)")
+  if (start >= 0) {
+    const zaIdx = source.indexOf("ZA={", start)
+    if (zaIdx >= 0) {
+      const block = source.slice(start, zaIdx)
+      const out: Record<string, string> = {}
+      for (const m of block.matchAll(/([A-Za-z_$]+)="([^"]+)"/g)) out[m[1]] = m[2]
+      return out
+    }
+  }
+  throw new Error("Could not find spec constants (var JA=...)")
+}
 
-  const zaIdx = source.indexOf("ZA={", start)
-  if (zaIdx < 0) throw new Error("Could not find model catalog (ZA=)")
+function findCatalogVar(source: string): string | undefined {
+  const m = source.match(/([$A-Za-z_][\w$]*)=\{[A-Z0-9_]+:\{id:"claude/)
+  return m?.[1]
+}
 
-  const block = source.slice(start, zaIdx)
-  const out: Record<string, string> = {}
-  for (const m of block.matchAll(/([A-Za-z_$]+)="([^"]+)"/g)) out[m[1]] = m[2]
+function findDirectVar(source: string): string | undefined {
+  const m = source.match(/([$A-Za-z_][\w$]*)=\{\[([$A-Za-z_][\w$]*)\]:\[\{id:"anthropic:/)
+  return m?.[1]
+}
+
+function findGatewayVar(source: string): string | undefined {
+  const m = source.match(/([$A-Za-z_][\w$]*)=\[\{canonicalId:"[^"]+",gatewaySlug/)
+  return m?.[1]
+}
+
+function findOpenRouterVar(source: string): string | undefined {
+  const m = source.match(/([$A-Za-z_][\w$]*)=\[\{canonicalId:"[^"]+",openrouterSlug/)
+  return m?.[1]
+}
+
+function findSimpleVars(source: string): string[] {
+  const out: string[] = []
+  for (const m of source.matchAll(/([$A-Za-z_][\w$]*)=\[\{canonicalId:"[^"]+",slug:"[^"]+",promptCost/g)) {
+    out.push(m[1])
+  }
   return out
 }
 
 function extractModelCatalog(source: string, consts: Record<string, string>): Record<string, SnEntry> {
+  // dynamic
+  const catVar = findCatalogVar(source)
+  if (catVar) {
+    try {
+      const raw = findBalancedAt(source, `${catVar}={`, "{", "}")
+      return evaluateWithContext(normalizeForEval(raw), consts)
+    } catch (e) {
+      console.warn(`  Dynamic catalog extraction failed for ${catVar}: ${e}`)
+    }
+  }
+  // legacy
   const raw = findBalancedAt(source, "ZA={", "{", "}")
   return evaluateWithContext(normalizeForEval(raw), consts)
+}
+
+function ensureLRDR(source: string, consts: Record<string, unknown>) {
+  // LR is ISO date string like "2026-08-16T16:00:00Z"
+  const lrMatch = source.match(/([$A-Za-z_][\w$]*)="(2026-[^"]+Z)"/)
+  if (lrMatch && !(lrMatch[1] in consts)) {
+    consts[lrMatch[1]] = lrMatch[2]
+  }
+  const drMatch = source.match(/([$A-Za-z_][\w$]*)=\[\{startHourUtc/)
+  if (drMatch && !(drMatch[1] in consts)) {
+    const drVar = drMatch[1]
+    try {
+      const raw = findBalancedAt(source, `${drVar}=[`, "[", "]")
+      consts[drVar] = evaluateWithContext(normalizeForEval(raw), {})
+    } catch {}
+  }
 }
 
 function extractCostData(source: string, consts: Record<string, string>): {
@@ -235,6 +366,64 @@ function extractCostData(source: string, consts: Record<string, string>): {
   nR: SimplePricingEntry[]
   rR: SimplePricingEntry[]
 } {
+  // Ensure LR/DR for gateway/simple evaluation
+  ensureLRDR(source, consts as Record<string, unknown>)
+
+  // Try dynamic extraction
+  try {
+    const directVar = findDirectVar(source)
+    const gatewayVar = findGatewayVar(source)
+    const openVar = findOpenRouterVar(source)
+    const simpleVars = findSimpleVars(source)
+
+    if (directVar) {
+      const yaRaw = findBalancedAt(source, `${directVar}={`, "{", "}")
+      const ya = evaluateWithContext(normalizeForEval(yaRaw), consts) as Record<string, CostEntry[]>
+
+      let tR: GatewayPricingEntry[] = []
+      if (gatewayVar) {
+        try {
+          const raw = findBalancedAt(source, `${gatewayVar}=[`, "[", "]")
+          tR = evaluateWithContext(normalizeForEval(raw), consts) as GatewayPricingEntry[]
+        } catch (e) {
+          console.warn(`  Failed to parse gateway var ${gatewayVar}: ${e}`)
+        }
+      }
+
+      let oR: OpenRouterPricingEntry[] = []
+      if (openVar) {
+        try {
+          const raw = findBalancedAt(source, `${openVar}=[`, "[", "]")
+          oR = evaluateWithContext(normalizeForEval(raw), consts) as OpenRouterPricingEntry[]
+        } catch (e) {
+          console.warn(`  Failed to parse openrouter var ${openVar}: ${e}`)
+        }
+      }
+
+      let simpleArrays: SimplePricingEntry[][] = []
+      for (const v of simpleVars) {
+        try {
+          const raw = findBalancedAt(source, `${v}=[`, "[", "]")
+          const arr = evaluateWithContext(normalizeForEval(raw), consts) as SimplePricingEntry[]
+          simpleArrays.push(arr)
+        } catch (e) {
+          console.warn(`  Failed to parse simple var ${v}: ${e}`)
+        }
+      }
+      const nR = simpleArrays[0] ?? []
+      const rR = simpleArrays[1] ?? []
+      // if more than 2, merge extras into nR
+      if (simpleArrays.length > 2) {
+        for (let i = 2; i < simpleArrays.length; i++) nR.push(...simpleArrays[i])
+      }
+
+      return { ya, tR, oR, nR, rR }
+    }
+  } catch (e) {
+    console.warn(`  Dynamic cost extraction failed: ${e}, trying legacy`)
+  }
+
+  // Legacy fallback
   const yaRaw = findBalancedAt(source, "YA={", "{", "}")
   const ya = evaluateWithContext(normalizeForEval(yaRaw), consts) as Record<string, CostEntry[]>
 

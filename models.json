@@ -178,7 +178,7 @@
       "cache_read": 0.5
     },
     "limit": {
-      "context": 256000,
+      "context": 400000,
       "output": 128000
     }
   },
@@ -742,6 +742,21 @@
     }
   },
   {
+    "id": "stealth/ox-alpha",
+    "name": "Ox Alpha",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0,
+      "output": 0
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 131072
+    }
+  },
+  {
     "id": "Qwen/Qwen3.6-Max-Preview",
     "name": "Qwen 3.6 Max Preview",
     "tier": "open-source",
@@ -823,6 +838,22 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    }
+  },
+  {
+    "id": "Qwen/Qwen3.8-27B",
+    "name": "Qwen 3.8 27B",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.4,
+      "output": 3,
+      "cache_read": 0.04
+    },
+    "limit": {
+      "context": 262144,
+      "output": 32768
     }
   },
   {
