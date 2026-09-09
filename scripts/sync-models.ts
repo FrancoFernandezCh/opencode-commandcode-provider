@@ -78,6 +78,9 @@ const FALLBACK_COSTS: Record<string, { input: number; output: number; cache_read
   "google/gemini-3.1-flash-lite": { input: 0.25, output: 1.5, cache_read: 0.03 },
   "stealth/ox-alpha": { input: 0, output: 0 },
   "inclusionai/ling-3.0-flash-free": { input: 0, output: 0 },
+  "MiniMaxAI/MiniMax-M3-Free": { input: 0, output: 0 },
+  "minimax/minimax-m3-free": { input: 0, output: 0 },
+  "minimax/minimax-m2.7-free": { input: 0, output: 0 },
 }
 
 const FALLBACK_LIMITS: Record<string, { context: number; output: number }> = {
@@ -106,6 +109,9 @@ const FALLBACK_LIMITS: Record<string, { context: number; output: number }> = {
   "google/gemini-3.1-flash-lite": { context: 1000000, output: 65536 },
   "stealth/ox-alpha": { context: 1048576, output: 131072 },
   "inclusionai/ling-3.0-flash-free": { context: 256000, output: 32768 },
+  "MiniMaxAI/MiniMax-M3-Free": { context: 1000000, output: 131072 },
+  "minimax/minimax-m3-free": { context: 1000000, output: 131072 },
+  "minimax/minimax-m2.7-free": { context: 1000000, output: 131072 },
 }
 
 const TIER_MAP: Record<string, "premium" | "open-source"> = {
@@ -664,10 +670,22 @@ async function main() {
 
   const entries: ModelEntry[] = []
 
+  const FREE_OVERRIDES = new Set([
+    "MiniMaxAI/MiniMax-M3-Free",
+    "minimax/minimax-m3-free",
+    "minimax/minimax-m2.7-free",
+  ])
+
   for (const [, model] of Object.entries(models)) {
-    if (model.hidden) {
+    if (model.hidden && !FREE_OVERRIDES.has(model.id)) {
       console.log(`  Skipping hidden model: ${model.id}`)
       continue
+    }
+    if (model.hidden) {
+      console.log(`  Including free override: ${model.id}`)
+    }
+    if (FREE_OVERRIDES.has(model.id)) {
+      model.name = `${model.name} (free)`
     }
     const entry = buildModelEntry(model, data)
     if (entry) {

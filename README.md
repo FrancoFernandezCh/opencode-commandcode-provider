@@ -75,6 +75,7 @@ COMMANDCODE_API_KEY=your-key opencode
 | `gpt-5.6-sol`                              | GPT-5.6 Sol                 | premium      | yes | 1M     |
 | `gpt-5.6-terra`                            | GPT-5.6 Terra               | premium      | yes | 1M     |
 | `deepseek/deepseek-v4-flash`               | DeepSeek V4 Flash (latest)  | open-source  | yes | 1M     |
+| `deepseek/deepseek-v4-flash-vision-exp`    | DeepSeek V4 Flash Vision (exp) | open-source  | yes | 1M     |
 | `deepseek/deepseek-v4-pro`                 | DeepSeek V4 Pro (latest)    | open-source  | yes | 1M     |
 | `sakana/fugu-ultra`                        | Fugu Ultra                  | open-source  | yes | 1M     |
 | `google/gemini-3.1-flash-lite`             | Gemini 3.1 Flash Lite       | open-source  | yes | 1M     |
@@ -87,6 +88,7 @@ COMMANDCODE_API_KEY=your-key opencode
 | `zai-org/GLM-5.2`                          | GLM-5.2                     | open-source  | yes | 1M     |
 | `zai-org/GLM-5.2-Fast`                     | GLM-5.2 Fast                | open-source  | no  | 1M     |
 | `zai-org/GLM-5.3`                          | GLM-5.3                     | open-source  | yes | 1M     |
+| `z-ai/glm-5.3-flash`                       | GLM-5.3 Flash               | open-source  | yes | 1M     |
 | `xai/grok-4.5`                             | Grok 4.5                    | open-source  | yes | 500K   |
 | `xai/grok-4.6`                             | Grok 4.6                    | open-source  | yes | 500K   |
 | `thinkingmachines/inkling`                 | Inkling                     | open-source  | yes | 256K   |
@@ -106,13 +108,13 @@ COMMANDCODE_API_KEY=your-key opencode
 | `meta/muse-spark-1.2`                      | Muse Spark 1.2              | open-source  | yes | 1M     |
 | `meta/muse-spark-1.2-contributor`          | Muse Spark 1.2 Contributor  | open-source  | yes | 1M     |
 | `nvidia/nemotron-3-ultra-550b-a55b`        | Nemotron 3 Ultra            | open-source  | yes | 1M     |
-| `stealth/ox-alpha`                         | Ox Alpha                    | open-source  | yes | 1M     |
 | `Qwen/Qwen3.6-Max-Preview`                 | Qwen 3.6 Max Preview        | open-source  | yes | 1M     |
 | `Qwen/Qwen3.6-Plus`                        | Qwen 3.6 Plus               | open-source  | yes | 1M     |
 | `Qwen/Qwen3.7-Flash`                       | Qwen 3.7 Flash              | open-source  | yes | 1M     |
 | `Qwen/Qwen3.7-Max`                         | Qwen 3.7 Max                | open-source  | yes | 1M     |
 | `Qwen/Qwen3.7-Plus`                        | Qwen 3.7 Plus               | open-source  | yes | 1M     |
 | `Qwen/Qwen3.8-27B`                         | Qwen 3.8 27B                | open-source  | yes | 262K   |
+| `Qwen/Qwen3.8-Flash`                       | Qwen 3.8 Flash              | open-source  | yes | 1M     |
 | `Qwen/Qwen3.8-Max`                         | Qwen 3.8 Max                | open-source  | yes | 1M     |
 | `stepfun/Step-3.5-Flash`                   | Step 3.5 Flash              | open-source  | yes | 1M     |
 | `stepfun/Step-3.7-Flash`                   | Step 3.7 Flash              | open-source  | yes | 256K   |
@@ -151,6 +153,11 @@ Run `opencode --config opencode.local.json` to test with your local build.
 bun run sync              # update models.json from Command Code
 bun run sync:global       # update models.json + write to ~/.config/opencode/opencode.jsonc
 ```
+
+A slash command is also available: `/cc-sync`. It runs the same `bun run sync` flow and reports the result back in the chat.
+
+- **Local:** open this repo in opencode and `/cc-sync` will appear in the command palette (per-project discovery at `.opencode/commands/`).
+- **Global:** copy [`.opencode/commands/cc-sync.md`](./.opencode/commands/cc-sync.md) to `~/.config/opencode/commands/cc-sync.md` to make it available in every project.
 
 ## License
 
