@@ -61,6 +61,7 @@ COMMANDCODE_API_KEY=your-key opencode
 | Model ID | Name | Tier | Reasoning | Context |
 |---|---|---|---|---|
 | `claude-fable-5`                           | Claude Fable 5              | premium      | yes | 1M     |
+| `claude-fable-5-1`                         | Claude Fable 5.1            | premium      | yes | 1M     |
 | `claude-haiku-4-5-20251001`                | Claude Haiku 4.5            | premium      | no  | 200K   |
 | `claude-opus-4-7`                          | Claude Opus 4.7             | premium      | yes | 1M     |
 | `claude-opus-4-8`                          | Claude Opus 4.8             | premium      | yes | 1M     |
@@ -74,15 +75,19 @@ COMMANDCODE_API_KEY=your-key opencode
 | `gpt-5.6-luna`                             | GPT-5.6 Luna                | premium      | yes | 1M     |
 | `gpt-5.6-sol`                              | GPT-5.6 Sol                 | premium      | yes | 1M     |
 | `gpt-5.6-terra`                            | GPT-5.6 Terra               | premium      | yes | 1M     |
+| `gpt-6-astra`                              | GPT-6 Astra                 | premium      | yes | 1M     |
 | `deepseek/deepseek-v4-flash`               | DeepSeek V4 Flash (latest)  | open-source  | yes | 1M     |
+| `deepseek/deepseek-v4-flash-fast`          | DeepSeek V4 Flash Fast      | open-source  | yes | 1M     |
 | `deepseek/deepseek-v4-flash-vision-exp`    | DeepSeek V4 Flash Vision (exp) | open-source  | yes | 1M     |
 | `deepseek/deepseek-v4-pro`                 | DeepSeek V4 Pro (latest)    | open-source  | yes | 1M     |
+| `deepseek/deepseek-v4.1-flash`             | DeepSeek V4.1 Flash         | open-source  | yes | 1M     |
 | `sakana/fugu-ultra`                        | Fugu Ultra                  | open-source  | yes | 1M     |
 | `google/gemini-3.1-flash-lite`             | Gemini 3.1 Flash Lite       | open-source  | yes | 1M     |
 | `google/gemini-3.5-flash`                  | Gemini 3.5 Flash            | open-source  | yes | 1M     |
 | `google/gemini-3.5-flash-lite`             | Gemini 3.5 Flash Lite       | open-source  | yes | 1M     |
 | `google/gemini-3.6-flash`                  | Gemini 3.6 Flash            | open-source  | yes | 1M     |
 | `google/gemini-3.7-flash`                  | Gemini 3.7 Flash            | open-source  | yes | 1M     |
+| `google/gemini-3.8-flash`                  | Gemini 3.8 Flash            | open-source  | yes | 1M     |
 | `zai-org/GLM-5`                            | GLM-5                       | open-source  | no  | 200K   |
 | `zai-org/GLM-5.1`                          | GLM-5.1                     | open-source  | no  | 200K   |
 | `zai-org/GLM-5.2`                          | GLM-5.2                     | open-source  | yes | 1M     |
@@ -99,14 +104,21 @@ COMMANDCODE_API_KEY=your-key opencode
 | `moonshotai/Kimi-K2.7-Code-Highspeed`      | Kimi K2.7 Code HighSpeed    | open-source  | yes | 262K   |
 | `moonshotai/Kimi-K3`                       | Kimi K3                     | open-source  | yes | 1M     |
 | `poolside/laguna-s-2.1-free`               | Laguna S 2.1                | open-source  | yes | 256K   |
+| `inclusionai/ling-3.0-flash-sante:free`    | Ling 3.0 Flash Sante        | open-source  | yes | 262K   |
+| `meituan/LongCat-2.0:free`                 | LongCat 2.0                 | open-source  | yes | 1M     |
 | `xiaomi/mimo-v2.5`                         | MiMo V2.5                   | open-source  | no  | 1M     |
 | `xiaomi/mimo-v2.5-pro`                     | MiMo V2.5 Pro               | open-source  | no  | 1M     |
 | `MiniMaxAI/MiniMax-M2.5`                   | MiniMax M2.5                | open-source  | no  | 200K   |
 | `MiniMaxAI/MiniMax-M2.7`                   | MiniMax M2.7                | open-source  | no  | 1M     |
+| `minimax/minimax-m2.7-free`                | MiniMax M2.7 (Free) (free)  | open-source  | no  | 197K   |
 | `MiniMaxAI/MiniMax-M3`                     | MiniMax M3                  | open-source  | yes | 1M     |
+| `MiniMaxAI/MiniMax-M3-Free`                | MiniMax M3 (free)           | open-source  | yes | 1M     |
+| `minimax/minimax-m3-free`                  | MiniMax M3 (Free) (free)    | open-source  | yes | 1M     |
 | `meta/muse-spark-1.1`                      | Muse Spark 1.1              | open-source  | yes | 1M     |
 | `meta/muse-spark-1.2`                      | Muse Spark 1.2              | open-source  | yes | 1M     |
 | `meta/muse-spark-1.2-contributor`          | Muse Spark 1.2 Contributor  | open-source  | yes | 1M     |
+| `meta/muse-spark-1.3`                      | Muse Spark 1.3              | open-source  | yes | 1M     |
+| `meta/muse-spark-1.3-contributor`          | Muse Spark 1.3 Contributor  | open-source  | yes | 1M     |
 | `nvidia/nemotron-3-ultra-550b-a55b`        | Nemotron 3 Ultra            | open-source  | yes | 1M     |
 | `Qwen/Qwen3.6-Max-Preview`                 | Qwen 3.6 Max Preview        | open-source  | yes | 1M     |
 | `Qwen/Qwen3.6-Plus`                        | Qwen 3.6 Plus               | open-source  | yes | 1M     |
@@ -116,9 +128,11 @@ COMMANDCODE_API_KEY=your-key opencode
 | `Qwen/Qwen3.8-27B`                         | Qwen 3.8 27B                | open-source  | yes | 262K   |
 | `Qwen/Qwen3.8-Flash`                       | Qwen 3.8 Flash              | open-source  | yes | 1M     |
 | `Qwen/Qwen3.8-Max`                         | Qwen 3.8 Max                | open-source  | yes | 1M     |
+| `Qwen/Qwen3.8-Max-0902`                    | Qwen 3.8 Max 0902           | open-source  | yes | 1M     |
 | `stepfun/Step-3.5-Flash`                   | Step 3.5 Flash              | open-source  | yes | 1M     |
 | `stepfun/Step-3.7-Flash`                   | Step 3.7 Flash              | open-source  | yes | 256K   |
 | `tencent/hy3-paid`                         | Tencent Hy3                 | open-source  | yes | 262K   |
+| `tencent/hy4-preview`                      | Tencent Hy4 Preview         | open-source  | yes | 1M     |
 
 Full model list is maintained in [`models.json`](./models.json). Run `bun run sync` to refresh from the latest Command Code CLI release on npm.
 

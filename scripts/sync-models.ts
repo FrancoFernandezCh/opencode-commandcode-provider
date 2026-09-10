@@ -114,6 +114,12 @@ const FALLBACK_LIMITS: Record<string, { context: number; output: number }> = {
   "minimax/minimax-m2.7-free": { context: 1000000, output: 131072 },
 }
 
+const FREE_OVERRIDES = new Set([
+  "MiniMaxAI/MiniMax-M3-Free",
+  "minimax/minimax-m3-free",
+  "minimax/minimax-m2.7-free",
+])
+
 const TIER_MAP: Record<string, "premium" | "open-source"> = {
   "anthropic": "premium",
   "openai": "premium",
@@ -365,7 +371,83 @@ function ensureLRDR(source: string, consts: Record<string, unknown>) {
   }
 }
 
-function extractCostData(source: string, consts: Record<string, string>): {
+const RESERVED_IDENTIFIERS = new Set([
+  "true", "false", "null", "undefined", "NaN", "Infinity",
+  "new", "this", "typeof", "void", "delete", "in", "instanceof",
+  "Set", "Map", "WeakMap", "Date", "Math", "JSON", "Object", "Array",
+  "String", "Number", "Boolean", "RegExp", "parseInt", "parseFloat", "isNaN",
+])
+
+function collectFreeIdentifiers(code: string): string[] {
+  const stripped = code
+    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
+  const ids = new Set<string>()
+  for (const m of stripped.matchAll(/(\.{3})?(\.)?([$A-Za-z_][\w$]*)(\s*:)?/g)) {
+    if (m[2] || m[4]) continue
+    if (!RESERVED_IDENTIFIERS.has(m[3])) ids.add(m[3])
+  }
+  return [...ids]
+}
+
+function readDefinitionExpression(source: string, start: number): string | undefined {
+  const ch = source[start]
+  if (ch === '"' || ch === "'") {
+    for (let i = start + 1; i < source.length; i++) {
+      if (source[i] === "\\") {
+        i++
+        continue
+      }
+      if (source[i] === ch) return source.slice(start, i + 1)
+    }
+    return undefined
+  }
+  if (ch === "{" || ch === "[") {
+    const close = ch === "{" ? "}" : "]"
+    let depth = 0
+    for (let i = start; i < source.length; i++) {
+      if (source[i] === ch) depth++
+      else if (source[i] === close) {
+        depth--
+        if (depth === 0) return source.slice(start, i + 1)
+      }
+    }
+    return undefined
+  }
+  return source.slice(start).match(/^[^,;}\]]+/)?.[0]
+}
+
+function findDefinition(source: string, name: string): string | undefined {
+  const escaped = name.replace(/\$/g, "\\$")
+  const m = new RegExp(`(?:^|[;,]|\\bvar\\s+)\\s*${escaped}=`).exec(source)
+  if (!m) return undefined
+  return readDefinitionExpression(source, m.index + m[0].length)
+}
+
+// Pricing arrays often reference shared helper constants (dates, peak windows,
+// spread pricing objects) declared elsewhere in the bundle. Resolve them on
+// demand so renamed/relocated helpers don't break extraction.
+function ensureReferencedConstants(
+  source: string,
+  consts: Record<string, unknown>,
+  code: string,
+  seen: Set<string> = new Set(),
+) {
+  for (const id of collectFreeIdentifiers(code)) {
+    if (id in consts || seen.has(id)) continue
+    seen.add(id)
+    const def = findDefinition(source, id)
+    if (!def || /=>|\bfunction\b|\bnew\b/.test(def)) continue
+    ensureReferencedConstants(source, consts, def, seen)
+    try {
+      consts[id] = evaluateWithContext(normalizeForEval(def), consts)
+    } catch {
+      // leave unresolved; the eval of the calling code will surface the error
+    }
+  }
+}
+
+function extractCostData(source: string, consts: Record<string, unknown>): {
   ya: Record<string, CostEntry[]>
   tR: GatewayPricingEntry[]
   oR: OpenRouterPricingEntry[]
@@ -373,7 +455,7 @@ function extractCostData(source: string, consts: Record<string, string>): {
   rR: SimplePricingEntry[]
 } {
   // Ensure LR/DR for gateway/simple evaluation
-  ensureLRDR(source, consts as Record<string, unknown>)
+  ensureLRDR(source, consts)
 
   // Try dynamic extraction
   try {
@@ -384,12 +466,14 @@ function extractCostData(source: string, consts: Record<string, string>): {
 
     if (directVar) {
       const yaRaw = findBalancedAt(source, `${directVar}={`, "{", "}")
+      ensureReferencedConstants(source, consts, yaRaw)
       const ya = evaluateWithContext(normalizeForEval(yaRaw), consts) as Record<string, CostEntry[]>
 
       let tR: GatewayPricingEntry[] = []
       if (gatewayVar) {
         try {
           const raw = findBalancedAt(source, `${gatewayVar}=[`, "[", "]")
+          ensureReferencedConstants(source, consts, raw)
           tR = evaluateWithContext(normalizeForEval(raw), consts) as GatewayPricingEntry[]
         } catch (e) {
           console.warn(`  Failed to parse gateway var ${gatewayVar}: ${e}`)
@@ -400,6 +484,7 @@ function extractCostData(source: string, consts: Record<string, string>): {
       if (openVar) {
         try {
           const raw = findBalancedAt(source, `${openVar}=[`, "[", "]")
+          ensureReferencedConstants(source, consts, raw)
           oR = evaluateWithContext(normalizeForEval(raw), consts) as OpenRouterPricingEntry[]
         } catch (e) {
           console.warn(`  Failed to parse openrouter var ${openVar}: ${e}`)
@@ -410,6 +495,7 @@ function extractCostData(source: string, consts: Record<string, string>): {
       for (const v of simpleVars) {
         try {
           const raw = findBalancedAt(source, `${v}=[`, "[", "]")
+          ensureReferencedConstants(source, consts, raw)
           const arr = evaluateWithContext(normalizeForEval(raw), consts) as SimplePricingEntry[]
           simpleArrays.push(arr)
         } catch (e) {
@@ -431,27 +517,24 @@ function extractCostData(source: string, consts: Record<string, string>): {
 
   // Legacy fallback
   const yaRaw = findBalancedAt(source, "YA={", "{", "}")
+  ensureReferencedConstants(source, consts, yaRaw)
   const ya = evaluateWithContext(normalizeForEval(yaRaw), consts) as Record<string, CostEntry[]>
 
-  const tR = evaluateWithContext(
-    normalizeForEval(findBalancedAt(source, "tR=[", "[", "]")),
-    consts,
-  ) as GatewayPricingEntry[]
+  const tRRaw = findBalancedAt(source, "tR=[", "[", "]")
+  ensureReferencedConstants(source, consts, tRRaw)
+  const tR = evaluateWithContext(normalizeForEval(tRRaw), consts) as GatewayPricingEntry[]
 
-  const oR = evaluateWithContext(
-    normalizeForEval(findBalancedAt(source, "oR=[", "[", "]")),
-    consts,
-  ) as OpenRouterPricingEntry[]
+  const oRRaw = findBalancedAt(source, "oR=[", "[", "]")
+  ensureReferencedConstants(source, consts, oRRaw)
+  const oR = evaluateWithContext(normalizeForEval(oRRaw), consts) as OpenRouterPricingEntry[]
 
-  const nR = evaluateWithContext(
-    normalizeForEval(findBalancedAt(source, "nR=[", "[", "]")),
-    consts,
-  ) as SimplePricingEntry[]
+  const nRRaw = findBalancedAt(source, "nR=[", "[", "]")
+  ensureReferencedConstants(source, consts, nRRaw)
+  const nR = evaluateWithContext(normalizeForEval(nRRaw), consts) as SimplePricingEntry[]
 
-  const rR = evaluateWithContext(
-    normalizeForEval(findBalancedAt(source, "rR=[", "[", "]")),
-    consts,
-  ) as SimplePricingEntry[]
+  const rRRaw = findBalancedAt(source, "rR=[", "[", "]")
+  ensureReferencedConstants(source, consts, rRRaw)
+  const rR = evaluateWithContext(normalizeForEval(rRRaw), consts) as SimplePricingEntry[]
 
   return { ya, tR, oR, nR, rR }
 }
@@ -541,7 +624,9 @@ function buildModelEntry(
   entry: SnEntry,
   data: ReturnType<typeof extractCostData>,
 ): ModelEntry | null {
-  const cost = resolveCost(entry.id, data) ?? FALLBACK_COSTS[entry.id]
+  const cost = FREE_OVERRIDES.has(entry.id)
+    ? { input: 0, output: 0 }
+    : resolveCost(entry.id, data) ?? FALLBACK_COSTS[entry.id]
   if (!cost) return null
 
   const limit = {
@@ -669,12 +754,6 @@ async function main() {
   console.log(`  Found ${modelCount} models`)
 
   const entries: ModelEntry[] = []
-
-  const FREE_OVERRIDES = new Set([
-    "MiniMaxAI/MiniMax-M3-Free",
-    "minimax/minimax-m3-free",
-    "minimax/minimax-m2.7-free",
-  ])
 
   for (const [, model] of Object.entries(models)) {
     if (model.hidden && !FREE_OVERRIDES.has(model.id)) {

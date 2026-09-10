@@ -276,7 +276,7 @@
     "cost": {
       "input": 0.14,
       "output": 0.28,
-      "cache_read": 0.01
+      "cache_read": 0.0028
     },
     "limit": {
       "context": 1000000,
@@ -300,6 +300,22 @@
     }
   },
   {
+    "id": "deepseek/deepseek-v4-flash-vision-exp",
+    "name": "DeepSeek V4 Flash Vision (exp)",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.22,
+      "output": 0.66,
+      "cache_read": 0.007
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
     "id": "deepseek/deepseek-v4-pro",
     "name": "DeepSeek V4 Pro (latest)",
     "tier": "open-source",
@@ -313,6 +329,38 @@
     "limit": {
       "context": 1000000,
       "output": 384000
+    }
+  },
+  {
+    "id": "deepseek/deepseek-v4.1-flash",
+    "name": "DeepSeek V4.1 Flash",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.15,
+      "output": 0.6,
+      "cache_read": 0.003
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "sakana/fugu-ultra",
+    "name": "Fugu Ultra",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 5,
+      "output": 30,
+      "cache_read": 0.5
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
     }
   },
   {
@@ -340,6 +388,70 @@
     "cost": {
       "input": 1.5,
       "output": 9,
+      "cache_read": 0.15
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "google/gemini-3.5-flash-lite",
+    "name": "Gemini 3.5 Flash Lite",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.3,
+      "output": 2.5,
+      "cache_read": 0.03
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "google/gemini-3.6-flash",
+    "name": "Gemini 3.6 Flash",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 1.5,
+      "output": 7.5,
+      "cache_read": 0.15
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "google/gemini-3.7-flash",
+    "name": "Gemini 3.7 Flash",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 1.5,
+      "output": 7.5,
+      "cache_read": 0.15
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 65536
+    }
+  },
+  {
+    "id": "google/gemini-3.8-flash",
+    "name": "Gemini 3.8 Flash",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 1.5,
+      "output": 7.5,
       "cache_read": 0.15
     },
     "limit": {
@@ -395,6 +507,22 @@
     }
   },
   {
+    "id": "zai-org/GLM-5.2-Fast",
+    "name": "GLM-5.2 Fast",
+    "tier": "open-source",
+    "reasoning": false,
+    "tool_call": true,
+    "cost": {
+      "input": 3,
+      "output": 10.25,
+      "cache_read": 0.5
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
     "id": "zai-org/GLM-5.3",
     "name": "GLM-5.3",
     "tier": "open-source",
@@ -404,6 +532,86 @@
       "input": 1.4,
       "output": 4.4,
       "cache_read": 0.26
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "z-ai/glm-5.3-flash",
+    "name": "GLM-5.3 Flash",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.15,
+      "output": 0.5,
+      "cache_read": 0.03
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 131072
+    }
+  },
+  {
+    "id": "xai/grok-4.5",
+    "name": "Grok 4.5",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 2,
+      "output": 6,
+      "cache_read": 0.5
+    },
+    "limit": {
+      "context": 500000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "xai/grok-4.6",
+    "name": "Grok 4.6",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 2,
+      "output": 6,
+      "cache_read": 0.5
+    },
+    "limit": {
+      "context": 500000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "thinkingmachines/inkling",
+    "name": "Inkling",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 1,
+      "output": 4.05,
+      "cache_read": 0.17
+    },
+    "limit": {
+      "context": 256000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "thinkingmachines/inkling-small",
+    "name": "Inkling Small",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.5,
+      "output": 1.2,
+      "cache_read": 0.1
     },
     "limit": {
       "context": 1000000,
@@ -458,6 +666,22 @@
     }
   },
   {
+    "id": "moonshotai/Kimi-K2.7-Code-Highspeed",
+    "name": "Kimi K2.7 Code HighSpeed",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 1.9,
+      "output": 8,
+      "cache_read": 0.38
+    },
+    "limit": {
+      "context": 262000,
+      "output": 65536
+    }
+  },
+  {
     "id": "moonshotai/Kimi-K3",
     "name": "Kimi K3",
     "tier": "open-source",
@@ -474,6 +698,36 @@
     }
   },
   {
+    "id": "poolside/laguna-s-2.1-free",
+    "name": "Laguna S 2.1",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0,
+      "output": 0
+    },
+    "limit": {
+      "context": 256000,
+      "output": 32768
+    }
+  },
+  {
+    "id": "inclusionai/ling-3.0-flash-sante:free",
+    "name": "Ling 3.0 Flash Sante",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0,
+      "output": 0
+    },
+    "limit": {
+      "context": 262144,
+      "output": 32768
+    }
+  },
+  {
     "id": "meituan/LongCat-2.0:free",
     "name": "LongCat 2.0",
     "tier": "open-source",
@@ -485,6 +739,38 @@
     },
     "limit": {
       "context": 1048576,
+      "output": 65536
+    }
+  },
+  {
+    "id": "xiaomi/mimo-v2.5",
+    "name": "MiMo V2.5",
+    "tier": "open-source",
+    "reasoning": false,
+    "tool_call": true,
+    "cost": {
+      "input": 0.14,
+      "output": 0.28,
+      "cache_read": 0.0028
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "xiaomi/mimo-v2.5-pro",
+    "name": "MiMo V2.5 Pro",
+    "tier": "open-source",
+    "reasoning": false,
+    "tool_call": true,
+    "cost": {
+      "input": 0.435,
+      "output": 0.87,
+      "cache_read": 0.0036
+    },
+    "limit": {
+      "context": 1000000,
       "output": 65536
     }
   },
@@ -535,6 +821,22 @@
     }
   },
   {
+    "id": "MiniMaxAI/MiniMax-M3",
+    "name": "MiniMax M3",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.3,
+      "output": 1.2,
+      "cache_read": 0.06
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
     "id": "MiniMaxAI/MiniMax-M3-Free",
     "name": "MiniMax M3 (free)",
     "tier": "open-source",
@@ -562,6 +864,102 @@
     "limit": {
       "context": 1000000,
       "output": 131072
+    }
+  },
+  {
+    "id": "meta/muse-spark-1.1",
+    "name": "Muse Spark 1.1",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 1.25,
+      "output": 4.25,
+      "cache_read": 0.15
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 65536
+    }
+  },
+  {
+    "id": "meta/muse-spark-1.2",
+    "name": "Muse Spark 1.2",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 1.25,
+      "output": 4.25,
+      "cache_read": 0.15
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 65536
+    }
+  },
+  {
+    "id": "meta/muse-spark-1.2-contributor",
+    "name": "Muse Spark 1.2 Contributor",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.1,
+      "output": 0.2,
+      "cache_read": 0.002
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 65536
+    }
+  },
+  {
+    "id": "meta/muse-spark-1.3",
+    "name": "Muse Spark 1.3",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 1.25,
+      "output": 4.25,
+      "cache_read": 0.15
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 65536
+    }
+  },
+  {
+    "id": "meta/muse-spark-1.3-contributor",
+    "name": "Muse Spark 1.3 Contributor",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.1,
+      "output": 0.2,
+      "cache_read": 0.002
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 65536
+    }
+  },
+  {
+    "id": "nvidia/nemotron-3-ultra-550b-a55b",
+    "name": "Nemotron 3 Ultra",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.6,
+      "output": 2.4,
+      "cache_read": 0.12
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
     }
   },
   {
@@ -598,6 +996,23 @@
     }
   },
   {
+    "id": "Qwen/Qwen3.7-Flash",
+    "name": "Qwen 3.7 Flash",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.03,
+      "output": 0.13,
+      "cache_read": 0.006,
+      "cache_write": 0.038
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
     "id": "Qwen/Qwen3.7-Max",
     "name": "Qwen 3.7 Max",
     "tier": "open-source",
@@ -606,7 +1021,8 @@
     "cost": {
       "input": 2.5,
       "output": 7.5,
-      "cache_read": 0.5
+      "cache_read": 0.5,
+      "cache_write": 3.13
     },
     "limit": {
       "context": 1000000,
@@ -622,7 +1038,8 @@
     "cost": {
       "input": 0.4,
       "output": 1.6,
-      "cache_read": 0.08
+      "cache_read": 0.08,
+      "cache_write": 0.5
     },
     "limit": {
       "context": 1000000,
@@ -670,7 +1087,8 @@
     "cost": {
       "input": 2,
       "output": 6,
-      "cache_read": 0.25
+      "cache_read": 0.25,
+      "cache_write": 2.5
     },
     "limit": {
       "context": 1000000,
@@ -707,6 +1125,54 @@
     "limit": {
       "context": 1000000,
       "output": 131072
+    }
+  },
+  {
+    "id": "stepfun/Step-3.7-Flash",
+    "name": "Step 3.7 Flash",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.2,
+      "output": 1.15,
+      "cache_read": 0.04
+    },
+    "limit": {
+      "context": 256000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "tencent/hy3-paid",
+    "name": "Tencent Hy3",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.14,
+      "output": 0.58,
+      "cache_read": 0.035
+    },
+    "limit": {
+      "context": 262144,
+      "output": 65536
+    }
+  },
+  {
+    "id": "tencent/hy4-preview",
+    "name": "Tencent Hy4 Preview",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.834,
+      "output": 2.501,
+      "cache_read": 0.042
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 65536
     }
   }
 ]
