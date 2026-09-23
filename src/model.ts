@@ -18,6 +18,7 @@ export interface CommandCodeModelOptions {
   apiKey: string
   baseURL?: string
   headers?: Record<string, string>
+  reasoningEffort?: string
 }
 
 export class CommandCodeLanguageModel implements LanguageModelV3 {
@@ -49,7 +50,7 @@ export class CommandCodeLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(options: LanguageModelV3CallOptions): Promise<LanguageModelV3StreamResult> {
-    const body = buildRequest(this.modelId, options)
+    const body = buildRequest(this.modelId, options, { reasoningEffort: this.opts.reasoningEffort })
     const requestBody = JSON.stringify(body)
 
     const controller = new AbortController()

@@ -23,6 +23,11 @@ export default async function commandcodePlugin() {
           if (entry.cost.cache_read !== undefined) costObj.cache_read = entry.cost.cache_read
           if (entry.cost.cache_write !== undefined) costObj.cache_write = entry.cost.cache_write
 
+          const variants: Record<string, Record<string, string>> = {}
+          for (const effort of entry.reasoning_efforts ?? []) {
+            variants[effort] = { reasoningEffort: effort }
+          }
+
           modelsObj[key] = {
             id: entry.id,
             name: entry.name,
@@ -30,6 +35,7 @@ export default async function commandcodePlugin() {
             tool_call: entry.tool_call,
             cost: costObj,
             limit: entry.limit,
+            ...(Object.keys(variants).length > 0 ? { variants } : {}),
           }
         }
         cc.models = modelsObj

@@ -12,6 +12,7 @@ export interface ModelEntry {
   tool_call: boolean
   cost: { input: number; output: number; cache_read?: number; cache_write?: number }
   limit: { context: number; output: number }
+  reasoning_efforts?: string[]
 }
 
 export function loadModels(): ModelEntry[] {

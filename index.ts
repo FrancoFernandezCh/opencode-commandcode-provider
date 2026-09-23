@@ -6,6 +6,8 @@ export interface CommandCodeProviderOptions {
   apiKey?: string
   baseURL?: string
   headers?: Record<string, string>
+  /** Reasoning effort sent as `reasoning_effort` (for example "low", "high", or "max"). */
+  reasoningEffort?: string
 }
 
 export function createCommandCode(options: CommandCodeProviderOptions = {}) {
@@ -22,6 +24,7 @@ export function createCommandCode(options: CommandCodeProviderOptions = {}) {
         apiKey,
         baseURL: typeof options.baseURL === "string" ? options.baseURL : undefined,
         headers: typeof options.headers === "object" && options.headers !== null ? options.headers as Record<string, string> : undefined,
+        reasoningEffort: typeof options.reasoningEffort === "string" ? options.reasoningEffort : undefined,
       })
     },
   }

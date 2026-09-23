@@ -25,6 +25,10 @@ export function buildV2Models(entries: ModelEntry[]): Model.Info[] {
         ...defaults.capabilities,
         tools: entry.tool_call,
       },
+      variants: (entry.reasoning_efforts ?? []).map((effort) => ({
+        id: Model.VariantID.make(effort),
+        settings: { reasoningEffort: effort },
+      })),
       cost: [
         {
           input: entry.cost.input as Model.Cost["input"],

@@ -15,6 +15,7 @@ interface ModelEntry {
   tool_call: boolean
   cost: { input: number; output: number; cache_read?: number; cache_write?: number }
   limit: { context: number; output: number }
+  reasoning_efforts?: string[]
 }
 
 interface CostEntry {
@@ -618,9 +619,83 @@ function tierFor(id: string, provider: string, data: ReturnType<typeof extractCo
   return TIER_MAP[provider] ?? "open-source"
 }
 
+const EFFORT_VALUES = new Set(["none", "minimal", "low", "medium", "high", "xhigh", "max"])
+
+// The CLI keeps a Map from canonical model id to the reasoning efforts it accepts.
+// Minified variable names change per build, so locate it by shape instead of name.
+function extractReasoningEfforts(source: string, consts: Record<string, unknown>): Record<string, string[]> {
+  const marker = "new Map(["
+  let searchFrom = 0
+
+  while (true) {
+    const at = source.indexOf(marker, searchFrom)
+    if (at < 0) break
+    searchFrom = at + marker.length
+
+    const open = at + marker.length - 1
+    let depth = 0
+    let end = -1
+    for (let i = open; i < source.length; i++) {
+      const ch = source[i]
+      if (ch === '"' || ch === "'") {
+        const quote = ch
+        i++
+        while (i < source.length && source[i] !== quote) {
+          if (source[i] === "\\") i++
+          i++
+        }
+        continue
+      }
+      if (ch === "[") depth++
+      else if (ch === "]") {
+        depth--
+        if (depth === 0) {
+          end = i
+          break
+        }
+      }
+    }
+    if (end < 0) continue
+
+    const raw = source.slice(open, end + 1)
+    if (!/"low"|"medium"|"high"/.test(raw)) continue
+
+    try {
+      ensureReferencedConstants(source, consts, raw)
+      const entries = evaluateWithContext(normalizeForEval(raw), consts) as unknown
+      if (!Array.isArray(entries) || entries.length <= 5) continue
+
+      const map: Record<string, string[]> = {}
+      let valid = true
+      for (const entry of entries) {
+        if (!Array.isArray(entry) || entry.length !== 2) {
+          valid = false
+          break
+        }
+        const [key, value] = entry as [unknown, unknown]
+        if (typeof key !== "string" || !Array.isArray(value) || value.length === 0) {
+          valid = false
+          break
+        }
+        if (!value.every((v) => typeof v === "string" && EFFORT_VALUES.has(v))) {
+          valid = false
+          break
+        }
+        map[key] = value as string[]
+      }
+      if (valid) return map
+    } catch {
+      // not the map we are looking for; keep scanning
+    }
+  }
+
+  return {}
+}
+
 function buildModelEntry(
   entry: SnEntry,
   data: ReturnType<typeof extractCostData>,
+  efforts: Record<string, string[]>,
 ): ModelEntry | null {
   const cost = FREE_OVERRIDES.has(entry.id)
     ? { input: 0, output: 0 }
@@ -632,14 +707,17 @@ function buildModelEntry(
     output: entry.maxOutputTokens ?? FALLBACK_LIMITS[entry.id]?.output ?? 65536,
   }
 
+  const levels = efforts[entry.id]
+
   return {
     id: entry.id,
     name: entry.name,
     tier: tierFor(entry.id, entry.provider, data),
-    reasoning: entry.reasoning || (entry.reasoningEfforts?.length ?? 0) > 0,
+    reasoning: entry.reasoning || (entry.reasoningEfforts?.length ?? 0) > 0 || (levels?.length ?? 0) > 0,
     tool_call: true,
     cost,
     limit,
+    ...(levels && levels.length > 0 ? { reasoning_efforts: levels } : {}),
   }
 }
 
@@ -662,6 +740,10 @@ async function main() {
   const modelCount = Object.keys(models).length
   console.log(`  Found ${modelCount} models`)
 
+  console.log("Extracting reasoning efforts...")
+  const efforts = extractReasoningEfforts(source, consts)
+  console.log(`  Effort levels for ${Object.keys(efforts).length} models`)
+
   const entries: ModelEntry[] = []
 
   for (const [, model] of Object.entries(models)) {
@@ -675,7 +757,7 @@ async function main() {
     if (FREE_OVERRIDES.has(model.id)) {
       model.name = `${model.name} (free)`
     }
-    const entry = buildModelEntry(model, data)
+    const entry = buildModelEntry(model, data, efforts)
     if (entry) {
       entries.push(entry)
     } else {

@@ -51,6 +51,36 @@ test("V2 models keep one entry per OpenCode model ID", () => {
   })
 })
 
+test("V2 models expose reasoning efforts as variants", () => {
+  const models = buildV2Models([
+    {
+      id: "deepseek/deepseek-v4-flash",
+      name: "DeepSeek V4 Flash",
+      tier: "open-source",
+      reasoning: true,
+      tool_call: true,
+      cost: { input: 0.15, output: 0.6 },
+      limit: { context: 1_000_000, output: 32_000 },
+      reasoning_efforts: ["high", "max"],
+    },
+    {
+      id: "plain-model",
+      name: "Plain Model",
+      tier: "open-source",
+      reasoning: false,
+      tool_call: true,
+      cost: { input: 0, output: 0 },
+      limit: { context: 1_000, output: 100 },
+    },
+  ])
+
+  expect(models[0]?.variants).toEqual([
+    { id: "high", settings: { reasoningEffort: "high" } },
+    { id: "max", settings: { reasoningEffort: "max" } },
+  ])
+  expect(models[1]?.variants).toEqual([])
+})
+
 test("server entrypoint serves OpenCode 2 setup() and OpenCode 1 server()", async () => {
   expect(serverEntrypoint.id).toBe("commandcode-go-opencode-provider")
   expect(typeof serverEntrypoint.setup).toBe("function")
