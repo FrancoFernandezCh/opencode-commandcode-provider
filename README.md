@@ -1,36 +1,42 @@
 # commandcode-go-opencode-provider
 
-[Command Code](https://commandcode.ai) API provider for [opencode](https://opencode.ai). Use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Step, and other models through a single API key.
+[Command Code](https://commandcode.ai) API provider for [OpenCode](https://opencode.ai). Use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Step, and other models through a single API key.
 
-## Quick Start
+## OpenCode V2
 
-### 1. Install
+Add the plugin to your `opencode.json` or `opencode.jsonc`:
 
-```bash
-opencode plugin commandcode-go-opencode-provider
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": ["commandcode-go-opencode-provider"],
+  "model": "commandcode/deepseek-v4-flash"
+}
 ```
 
-This installs the provider and registers all available models automatically.
+The plugin registers the Command Code provider and the models from [`models.json`](./models.json).
 
-### 2. Connect
-
-Run `/connect` in opencode, search for **Command Code**, and enter your API key:
+Connect your account in OpenCode:
 
 ```
 /connect
 ```
 
-### 3. Select a model
-
-Run `/models` to pick from available models:
+Search for **Command Code** and enter your API key, then pick a model from `/models`:
 
 ```
 /models
 ```
 
-## Manual Configuration
+Set `COMMANDCODE_API_KEY` on the OpenCode server instead of saving a key with `/connect`:
 
-If you prefer to configure manually, add this to your `opencode.json`:
+```bash
+COMMANDCODE_API_KEY=your-key opencode
+```
+
+## OpenCode V1 compatibility
+
+The same `/server` entrypoint also works in OpenCode 1.18.29 and newer. V1 users can keep their existing provider setup:
 
 ```json
 {
@@ -46,15 +52,7 @@ If you prefer to configure manually, add this to your `opencode.json`:
 }
 ```
 
-The plugin auto-registers models from [`models.json`](./models.json) at startup. You only need the `provider.commandcode` block — no need to list individual models.
-
-### Environment Variable
-
-Set `COMMANDCODE_API_KEY` instead of using `/connect`:
-
-```bash
-COMMANDCODE_API_KEY=your-key opencode
-```
+The V1 plugin auto-registers models from `models.json` and retains its existing `/connect` flow. On older V1 releases that do not support shared entrypoints, pin `commandcode-go-opencode-provider@0.4.0`.
 
 ## Available Models
 
@@ -66,6 +64,7 @@ COMMANDCODE_API_KEY=your-key opencode
 | `claude-opus-4-7`                          | Claude Opus 4.7             | premium      | yes | 1M     |
 | `claude-opus-4-8`                          | Claude Opus 4.8             | premium      | yes | 1M     |
 | `claude-opus-5`                            | Claude Opus 5               | premium      | yes | 1M     |
+| `claude-opus-5-5`                          | Claude Opus 5.5             | premium      | yes | 1M     |
 | `claude-sonnet-4-6`                        | Claude Sonnet 4.6           | premium      | yes | 1M     |
 | `claude-sonnet-5`                          | Claude Sonnet 5             | premium      | yes | 1M     |
 | `gpt-5.3-codex`                            | GPT-5.3 Codex               | premium      | yes | 400K   |
@@ -76,6 +75,7 @@ COMMANDCODE_API_KEY=your-key opencode
 | `gpt-5.6-sol`                              | GPT-5.6 Sol                 | premium      | yes | 1M     |
 | `gpt-5.6-terra`                            | GPT-5.6 Terra               | premium      | yes | 1M     |
 | `gpt-6-astra`                              | GPT-6 Astra                 | premium      | yes | 1M     |
+| `gpt-6-sol`                                | GPT-6 Sol                   | premium      | yes | 1M     |
 | `deepseek/deepseek-v4-flash`               | DeepSeek V4 Flash (latest)  | open-source  | yes | 1M     |
 | `deepseek/deepseek-v4-flash-fast`          | DeepSeek V4 Flash Fast      | open-source  | yes | 1M     |
 | `deepseek/deepseek-v4-flash-vision-exp`    | DeepSeek V4 Flash Vision (exp) | open-source  | yes | 1M     |
@@ -94,8 +94,11 @@ COMMANDCODE_API_KEY=your-key opencode
 | `zai-org/GLM-5.2-Fast`                     | GLM-5.2 Fast                | open-source  | no  | 1M     |
 | `zai-org/GLM-5.3`                          | GLM-5.3                     | open-source  | yes | 1M     |
 | `z-ai/glm-5.3-flash`                       | GLM-5.3 Flash               | open-source  | yes | 1M     |
+| `z-ai/glm-5.3-flashx`                      | GLM-5.3 FlashX              | open-source  | yes | 1M     |
+| `gpt-6-luna`                               | GPT-6 Luna                  | open-source  | yes | 1M     |
 | `xai/grok-4.5`                             | Grok 4.5                    | open-source  | yes | 500K   |
 | `xai/grok-4.6`                             | Grok 4.6                    | open-source  | yes | 500K   |
+| `xai/grok-4.7`                             | Grok 4.7                    | open-source  | yes | 500K   |
 | `thinkingmachines/inkling`                 | Inkling                     | open-source  | yes | 256K   |
 | `thinkingmachines/inkling-small`           | Inkling Small               | open-source  | yes | 1M     |
 | `moonshotai/Kimi-K2.5`                     | Kimi K2.5                   | open-source  | no  | 256K   |
@@ -105,9 +108,12 @@ COMMANDCODE_API_KEY=your-key opencode
 | `moonshotai/Kimi-K3`                       | Kimi K3                     | open-source  | yes | 1M     |
 | `poolside/laguna-s-2.1-free`               | Laguna S 2.1                | open-source  | yes | 256K   |
 | `inclusionai/ling-3.0-flash-sante:free`    | Ling 3.0 Flash Sante        | open-source  | yes | 262K   |
-| `meituan/LongCat-2.0:free`                 | LongCat 2.0                 | open-source  | yes | 1M     |
+| `meituan/LongCat-2.0`                      | LongCat 2.0                 | open-source  | yes | 1M     |
 | `xiaomi/mimo-v2.5`                         | MiMo V2.5                   | open-source  | no  | 1M     |
 | `xiaomi/mimo-v2.5-pro`                     | MiMo V2.5 Pro               | open-source  | no  | 1M     |
+| `xiaomi/mimo-v2.6-flash`                   | MiMo V2.6 Flash             | open-source  | no  | 1M     |
+| `xiaomi/mimo-v2.6-pro`                     | MiMo V2.6 Pro               | open-source  | no  | 1M     |
+| `xiaomi/mimo-v2.6-pro-ultraspeed`          | MiMo V2.6 Pro UltraSpeed    | open-source  | no  | 1M     |
 | `MiniMaxAI/MiniMax-M2.5`                   | MiniMax M2.5                | open-source  | no  | 200K   |
 | `MiniMaxAI/MiniMax-M2.7`                   | MiniMax M2.7                | open-source  | no  | 1M     |
 | `minimax/minimax-m2.7-free`                | MiniMax M2.7 (Free) (free)  | open-source  | no  | 197K   |
@@ -129,8 +135,10 @@ COMMANDCODE_API_KEY=your-key opencode
 | `Qwen/Qwen3.8-Flash`                       | Qwen 3.8 Flash              | open-source  | yes | 1M     |
 | `Qwen/Qwen3.8-Max`                         | Qwen 3.8 Max                | open-source  | yes | 1M     |
 | `Qwen/Qwen3.8-Max-0902`                    | Qwen 3.8 Max 0902           | open-source  | yes | 1M     |
+| `Qwen/Qwen3.8-Omni-Flash`                  | Qwen 3.8 Omni Flash         | open-source  | yes | 1M     |
 | `stepfun/Step-3.5-Flash`                   | Step 3.5 Flash              | open-source  | yes | 1M     |
 | `stepfun/Step-3.7-Flash`                   | Step 3.7 Flash              | open-source  | yes | 256K   |
+| `stepfun/Step-5-Preview`                   | Step 5 Preview              | open-source  | yes | 1M     |
 | `tencent/hy3-paid`                         | Tencent Hy3                 | open-source  | yes | 262K   |
 | `tencent/hy4-preview`                      | Tencent Hy4 Preview         | open-source  | yes | 1M     |
 
@@ -144,7 +152,7 @@ cd commandcode-go-opencode-provider
 bun install
 ```
 
-For local testing, create `opencode.local.json` (gitignored) with `file://` paths:
+For local V1 testing, create `opencode.local.json` (gitignored) with `file://` paths:
 
 ```json
 {
@@ -159,19 +167,39 @@ For local testing, create `opencode.local.json` (gitignored) with `file://` path
 }
 ```
 
-Run `opencode --config opencode.local.json` to test with your local build.
+Run `opencode --config opencode.local.json` to test with your local V1 build.
+
+For local V2 development, point the plugin at the checkout and the AI SDK runtime at the local package:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": [
+    {
+      "package": "/absolute/path/to/commandcode-go-opencode-provider",
+      "options": {
+        "providerPackage": "aisdk:file:///absolute/path/to/commandcode-go-opencode-provider"
+      }
+    }
+  ],
+  "model": "commandcode/deepseek-v4-flash"
+}
+```
+
+Run `opencode --config opencode.local.json` to test the local V2 plugin and provider. The project's own `opencode.json` only sets the Command Code model defaults, so keep the plugin in your global config or in `opencode.local.json` to avoid loading it twice.
 
 ### Sync Models
 
 ```bash
 bun run sync              # update models.json from Command Code
-bun run sync:global       # update models.json + write to ~/.config/opencode/opencode.jsonc
+bun run generate-readme   # refresh the model table in this README
 ```
 
-A slash command is also available: `/cc-sync`. It runs the same `bun run sync` flow and reports the result back in the chat.
+The plugin ships `models.json`, so a sync is enough. Reload OpenCode afterwards so the plugin re-registers the refreshed catalog:
 
-- **Local:** open this repo in opencode and `/cc-sync` will appear in the command palette (per-project discovery at `.opencode/commands/`).
-- **Global:** copy [`.opencode/commands/cc-sync.md`](./.opencode/commands/cc-sync.md) to `~/.config/opencode/commands/cc-sync.md` to make it available in every project.
+```bash
+opencode reload
+```
 
 ## License
 

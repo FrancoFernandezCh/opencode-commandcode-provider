@@ -1,11 +1,9 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from "fs"
 import { join } from "path"
-import { homedir } from "os"
 import { execSync } from "child_process"
 
 const PROJECT_ROOT = join(import.meta.dir, "..")
 const MODELS_JSON = join(PROJECT_ROOT, "models.json")
-const GLOBAL_CONFIG = join(homedir(), ".config", "opencode", "opencode.jsonc")
 const NPM_PACKAGE = "command-code"
 const TMP_DIR = join("/tmp", "cc-model-sync")
 
@@ -645,96 +643,7 @@ function buildModelEntry(
   }
 }
 
-function toConfigKey(id: string): string {
-  const slashIdx = id.indexOf("/")
-  const short = slashIdx >= 0 ? id.slice(slashIdx + 1) : id
-  return short.toLowerCase()
-}
-
-function generateOpencodeModels(entries: ModelEntry[]): Record<string, unknown> {
-  const models: Record<string, unknown> = {}
-  for (const entry of entries) {
-    const key = toConfigKey(entry.id)
-    const costObj: Record<string, number> = { input: entry.cost.input, output: entry.cost.output }
-    if (entry.cost.cache_read !== undefined) costObj.cache_read = entry.cost.cache_read
-    if (entry.cost.cache_write !== undefined) costObj.cache_write = entry.cost.cache_write
-
-    models[key] = {
-      id: entry.id,
-      name: entry.name,
-      reasoning: entry.reasoning,
-      tool_call: entry.tool_call,
-      cost: costObj,
-      limit: entry.limit,
-    }
-  }
-  return models
-}
-
-function stripJsonc(input: string): string {
-  let out = ""
-  let i = 0
-  while (i < input.length) {
-    const ch = input[i]
-    if (ch === '"') {
-      const start = i
-      i++
-      while (i < input.length && input[i] !== '"') {
-        if (input[i] === "\\") i++
-        i++
-      }
-      i++
-      out += input.slice(start, i)
-    } else if (ch === "/" && input[i + 1] === "/") {
-      while (i < input.length && input[i] !== "\n") i++
-    } else if (ch === "/" && input[i + 1] === "*") {
-      i += 2
-      while (i < input.length && !(input[i] === "*" && input[i + 1] === "/")) i++
-      i += 2
-    } else {
-      out += ch
-      i++
-    }
-  }
-  return out.replace(/,\s*([}\]])/g, "$1")
-}
-
-function updateGlobalConfig(modelsObj: Record<string, unknown>) {
-  if (!existsSync(GLOBAL_CONFIG)) {
-    console.log(`  Global config not found at ${GLOBAL_CONFIG}, skipping`)
-    return
-  }
-
-  const raw = readFileSync(GLOBAL_CONFIG, "utf-8")
-  const jsonStr = stripJsonc(raw)
-
-  let config: any
-  try {
-    config = JSON.parse(jsonStr)
-  } catch {
-    console.error("  Failed to parse global config as JSON after stripping comments")
-    return
-  }
-
-  if (!config.provider) config.provider = {}
-  if (!config.provider.commandcode) {
-    config.provider.commandcode = {
-      npm: "commandcode-go-opencode-provider",
-      name: "Command Code",
-      env: ["COMMANDCODE_API_KEY"],
-    }
-  }
-  config.provider.commandcode.models = modelsObj
-
-  const output = JSON.stringify(config, null, 2) + "\n"
-  writeFileSync(GLOBAL_CONFIG, output, "utf-8")
-  console.log(`  Updated ${GLOBAL_CONFIG}`)
-}
-
 async function main() {
-  const args = process.argv.slice(2)
-  const shouldUpdateGlobal = args.includes("--update-global")
-
   const { source, version } = await fetchLatestBundle()
   console.log(`Read CLI bundle v${version} (${(source.length / 1024).toFixed(0)} KB)`)
 
@@ -782,21 +691,10 @@ async function main() {
   console.log(`\nWriting ${MODELS_JSON} with ${entries.length} models...`)
   writeFileSync(MODELS_JSON, JSON.stringify(entries, null, 2) + "\n", "utf-8")
 
-  const modelsObj = generateOpencodeModels(entries)
-
-  if (shouldUpdateGlobal) {
-    console.log("Updating global config...")
-    updateGlobalConfig(modelsObj)
-  }
-
   console.log("\nModel list:")
   for (const entry of entries) {
     const cost = `$${entry.cost.input}/$${entry.cost.output}`
     console.log(`  ${entry.tier.padEnd(12)} ${entry.id.padEnd(35)} ${entry.name.padEnd(25)} ${cost}`)
-  }
-
-  if (!shouldUpdateGlobal) {
-    console.log(`\nRun with --update-global to update ${GLOBAL_CONFIG}`)
   }
 
   console.log("\nDone.")

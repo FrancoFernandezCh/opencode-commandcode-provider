@@ -102,6 +102,23 @@
     }
   },
   {
+    "id": "claude-opus-5-5",
+    "name": "Claude Opus 5.5",
+    "tier": "premium",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 4,
+      "output": 20,
+      "cache_read": 0.2,
+      "cache_write": 5
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
     "id": "claude-sonnet-4-6",
     "name": "Claude Sonnet 4.6",
     "tier": "premium",
@@ -268,6 +285,23 @@
     }
   },
   {
+    "id": "gpt-6-sol",
+    "name": "GPT-6 Sol",
+    "tier": "premium",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 2,
+      "output": 10,
+      "cache_read": 0.2,
+      "cache_write": 2.5
+    },
+    "limit": {
+      "context": 1050000,
+      "output": 65536
+    }
+  },
+  {
     "id": "deepseek/deepseek-v4-flash",
     "name": "DeepSeek V4 Flash (latest)",
     "tier": "open-source",
@@ -306,9 +340,9 @@
     "reasoning": true,
     "tool_call": true,
     "cost": {
-      "input": 0.22,
-      "output": 0.66,
-      "cache_read": 0.007
+      "input": 0.15,
+      "output": 0.6,
+      "cache_read": 0.003
     },
     "limit": {
       "context": 1000000,
@@ -555,6 +589,39 @@
     }
   },
   {
+    "id": "z-ai/glm-5.3-flashx",
+    "name": "GLM-5.3 FlashX",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.37,
+      "output": 1.25,
+      "cache_read": 0.075
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 131072
+    }
+  },
+  {
+    "id": "gpt-6-luna",
+    "name": "GPT-6 Luna",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.1,
+      "output": 0.5,
+      "cache_read": 0.01,
+      "cache_write": 0.125
+    },
+    "limit": {
+      "context": 1050000,
+      "output": 65536
+    }
+  },
+  {
     "id": "xai/grok-4.5",
     "name": "Grok 4.5",
     "tier": "open-source",
@@ -580,6 +647,22 @@
       "input": 2,
       "output": 6,
       "cache_read": 0.5
+    },
+    "limit": {
+      "context": 500000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "xai/grok-4.7",
+    "name": "Grok 4.7",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 1.2,
+      "output": 3.6,
+      "cache_read": 0.3
     },
     "limit": {
       "context": 500000,
@@ -728,14 +811,15 @@
     }
   },
   {
-    "id": "meituan/LongCat-2.0:free",
+    "id": "meituan/LongCat-2.0",
     "name": "LongCat 2.0",
     "tier": "open-source",
     "reasoning": true,
     "tool_call": true,
     "cost": {
-      "input": 0,
-      "output": 0
+      "input": 0.3,
+      "output": 1.2,
+      "cache_read": 0.006
     },
     "limit": {
       "context": 1048576,
@@ -771,6 +855,54 @@
     },
     "limit": {
       "context": 1000000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "xiaomi/mimo-v2.6-flash",
+    "name": "MiMo V2.6 Flash",
+    "tier": "open-source",
+    "reasoning": false,
+    "tool_call": true,
+    "cost": {
+      "input": 0.14,
+      "output": 0.28,
+      "cache_read": 0.0028
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 65536
+    }
+  },
+  {
+    "id": "xiaomi/mimo-v2.6-pro",
+    "name": "MiMo V2.6 Pro",
+    "tier": "open-source",
+    "reasoning": false,
+    "tool_call": true,
+    "cost": {
+      "input": 0.435,
+      "output": 0.87,
+      "cache_read": 0.0036
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 65536
+    }
+  },
+  {
+    "id": "xiaomi/mimo-v2.6-pro-ultraspeed",
+    "name": "MiMo V2.6 Pro UltraSpeed",
+    "tier": "open-source",
+    "reasoning": false,
+    "tool_call": true,
+    "cost": {
+      "input": 4.35,
+      "output": 8.7,
+      "cache_read": 0.036
+    },
+    "limit": {
+      "context": 1048576,
       "output": 65536
     }
   },
@@ -1112,6 +1244,22 @@
     }
   },
   {
+    "id": "Qwen/Qwen3.8-Omni-Flash",
+    "name": "Qwen 3.8 Omni Flash",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.15,
+      "output": 0.47,
+      "cache_read": 0.016
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 131072
+    }
+  },
+  {
     "id": "stepfun/Step-3.5-Flash",
     "name": "Step 3.5 Flash",
     "tier": "open-source",
@@ -1140,6 +1288,22 @@
     },
     "limit": {
       "context": 256000,
+      "output": 65536
+    }
+  },
+  {
+    "id": "stepfun/Step-5-Preview",
+    "name": "Step 5 Preview",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 1,
+      "output": 2.7,
+      "cache_read": 0.05
+    },
+    "limit": {
+      "context": 1000000,
       "output": 65536
     }
   },
