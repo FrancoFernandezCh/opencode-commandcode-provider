@@ -1,11 +1,10 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from "fs"
 import { join } from "path"
-import { homedir } from "os"
 import { execSync } from "child_process"
+import { normalizeFreeModelName } from "../src/catalog.js"
 
 const PROJECT_ROOT = join(import.meta.dir, "..")
 const MODELS_JSON = join(PROJECT_ROOT, "models.json")
-const GLOBAL_CONFIG = join(homedir(), ".config", "opencode", "opencode.jsonc")
 const NPM_PACKAGE = "command-code"
 const TMP_DIR = join("/tmp", "cc-model-sync")
 
@@ -17,6 +16,7 @@ interface ModelEntry {
   tool_call: boolean
   cost: { input: number; output: number; cache_read?: number; cache_write?: number }
   limit: { context: number; output: number }
+  reasoning_efforts?: string[]
 }
 
 interface CostEntry {
@@ -280,19 +280,25 @@ function extractProviderConstants(source: string): Record<string, string> {
 
 function extractSpecConstants(source: string): Record<string, string> {
   try {
-    const chatMatch = source.match(/var\s+([$A-Za-z_][\w$]*)="chatComplete"/)
+    // Spec constants share a var statement with the model catalog, e.g.
+    // `var aD=/regex/,lD="chatComplete",cD="responses",dD="...",uD={...}`.
+    const chatMatch = source.match(/(?:var\s+|,\s*)([$A-Za-z_][\w$]*)="chatComplete"/)
     if (chatMatch) {
       const chatVar = chatMatch[1]
-      const catMatch = source.match(/([$A-Za-z_][\w$]*)=\{[A-Z0-9_]+:\{id:"claude/)
-      if (catMatch) {
-        const catVar = catMatch[1]
-        const specBlockStart = source.indexOf(`var ${chatVar}="chatComplete"`)
-        const specBlockEnd = source.indexOf(`${catVar}={` , specBlockStart)
-        if (specBlockStart >= 0 && specBlockEnd >= 0) {
-          const block = source.slice(specBlockStart, specBlockEnd)
+      const catVar = findCatalogVar(source)
+      const catIdx = catVar ? source.indexOf(`${catVar}={`) : -1
+      if (chatVar && catIdx > chatMatch.index) {
+        // Start of the var statement holding the chatComplete declaration.
+        const specBlockStart = source.lastIndexOf("var ", chatMatch.index)
+        if (specBlockStart >= 0) {
+          const block = source.slice(specBlockStart, catIdx)
           const out: Record<string, string> = {}
           for (const m of block.matchAll(/([$A-Za-z_][\w$]*)="([^"]+)"/g)) out[m[1]] = m[2]
-          if (Object.keys(out).length > 0) return out
+          // aliases like sD=KO
+          for (const m of block.matchAll(/([$A-Za-z_][\w$]*)=([$A-Za-z_][\w$]*)\s*(?=[,;}\]])/g)) {
+            if (out[m[2]] && !out[m[1]]) out[m[1]] = out[m[2]]
+          }
+          if (chatVar in out) return out
         }
       }
     }
@@ -620,9 +626,83 @@ function tierFor(id: string, provider: string, data: ReturnType<typeof extractCo
   return TIER_MAP[provider] ?? "open-source"
 }
 
+const EFFORT_VALUES = new Set(["none", "minimal", "low", "medium", "high", "xhigh", "max"])
+
+// The CLI keeps a Map from canonical model id to the reasoning efforts it accepts.
+// Minified variable names change per build, so locate it by shape instead of name.
+function extractReasoningEfforts(source: string, consts: Record<string, unknown>): Record<string, string[]> {
+  const marker = "new Map(["
+  let searchFrom = 0
+
+  while (true) {
+    const at = source.indexOf(marker, searchFrom)
+    if (at < 0) break
+    searchFrom = at + marker.length
+
+    const open = at + marker.length - 1
+    let depth = 0
+    let end = -1
+    for (let i = open; i < source.length; i++) {
+      const ch = source[i]
+      if (ch === '"' || ch === "'") {
+        const quote = ch
+        i++
+        while (i < source.length && source[i] !== quote) {
+          if (source[i] === "\\") i++
+          i++
+        }
+        continue
+      }
+      if (ch === "[") depth++
+      else if (ch === "]") {
+        depth--
+        if (depth === 0) {
+          end = i
+          break
+        }
+      }
+    }
+    if (end < 0) continue
+
+    const raw = source.slice(open, end + 1)
+    if (!/"low"|"medium"|"high"/.test(raw)) continue
+
+    try {
+      ensureReferencedConstants(source, consts, raw)
+      const entries = evaluateWithContext(normalizeForEval(raw), consts) as unknown
+      if (!Array.isArray(entries) || entries.length <= 5) continue
+
+      const map: Record<string, string[]> = {}
+      let valid = true
+      for (const entry of entries) {
+        if (!Array.isArray(entry) || entry.length !== 2) {
+          valid = false
+          break
+        }
+        const [key, value] = entry as [unknown, unknown]
+        if (typeof key !== "string" || !Array.isArray(value) || value.length === 0) {
+          valid = false
+          break
+        }
+        if (!value.every((v) => typeof v === "string" && EFFORT_VALUES.has(v))) {
+          valid = false
+          break
+        }
+        map[key] = value as string[]
+      }
+      if (valid) return map
+    } catch {
+      // not the map we are looking for; keep scanning
+    }
+  }
+
+  return {}
+}
+
 function buildModelEntry(
   entry: SnEntry,
   data: ReturnType<typeof extractCostData>,
+  efforts: Record<string, string[]>,
 ): ModelEntry | null {
   const cost = FREE_OVERRIDES.has(entry.id)
     ? { input: 0, output: 0 }
@@ -634,107 +714,21 @@ function buildModelEntry(
     output: entry.maxOutputTokens ?? FALLBACK_LIMITS[entry.id]?.output ?? 65536,
   }
 
+  const levels = efforts[entry.id]
+
   return {
     id: entry.id,
-    name: entry.name,
+    name: normalizeFreeModelName(entry.name, cost.input === 0 && cost.output === 0),
     tier: tierFor(entry.id, entry.provider, data),
-    reasoning: entry.reasoning || (entry.reasoningEfforts?.length ?? 0) > 0,
+    reasoning: entry.reasoning || (entry.reasoningEfforts?.length ?? 0) > 0 || (levels?.length ?? 0) > 0,
     tool_call: true,
     cost,
     limit,
+    ...(levels && levels.length > 0 ? { reasoning_efforts: levels } : {}),
   }
-}
-
-function toConfigKey(id: string): string {
-  const slashIdx = id.indexOf("/")
-  const short = slashIdx >= 0 ? id.slice(slashIdx + 1) : id
-  return short.toLowerCase()
-}
-
-function generateOpencodeModels(entries: ModelEntry[]): Record<string, unknown> {
-  const models: Record<string, unknown> = {}
-  for (const entry of entries) {
-    const key = toConfigKey(entry.id)
-    const costObj: Record<string, number> = { input: entry.cost.input, output: entry.cost.output }
-    if (entry.cost.cache_read !== undefined) costObj.cache_read = entry.cost.cache_read
-    if (entry.cost.cache_write !== undefined) costObj.cache_write = entry.cost.cache_write
-
-    models[key] = {
-      id: entry.id,
-      name: entry.name,
-      reasoning: entry.reasoning,
-      tool_call: entry.tool_call,
-      cost: costObj,
-      limit: entry.limit,
-    }
-  }
-  return models
-}
-
-function stripJsonc(input: string): string {
-  let out = ""
-  let i = 0
-  while (i < input.length) {
-    const ch = input[i]
-    if (ch === '"') {
-      const start = i
-      i++
-      while (i < input.length && input[i] !== '"') {
-        if (input[i] === "\\") i++
-        i++
-      }
-      i++
-      out += input.slice(start, i)
-    } else if (ch === "/" && input[i + 1] === "/") {
-      while (i < input.length && input[i] !== "\n") i++
-    } else if (ch === "/" && input[i + 1] === "*") {
-      i += 2
-      while (i < input.length && !(input[i] === "*" && input[i + 1] === "/")) i++
-      i += 2
-    } else {
-      out += ch
-      i++
-    }
-  }
-  return out.replace(/,\s*([}\]])/g, "$1")
-}
-
-function updateGlobalConfig(modelsObj: Record<string, unknown>) {
-  if (!existsSync(GLOBAL_CONFIG)) {
-    console.log(`  Global config not found at ${GLOBAL_CONFIG}, skipping`)
-    return
-  }
-
-  const raw = readFileSync(GLOBAL_CONFIG, "utf-8")
-  const jsonStr = stripJsonc(raw)
-
-  let config: any
-  try {
-    config = JSON.parse(jsonStr)
-  } catch {
-    console.error("  Failed to parse global config as JSON after stripping comments")
-    return
-  }
-
-  if (!config.provider) config.provider = {}
-  if (!config.provider.commandcode) {
-    config.provider.commandcode = {
-      npm: "commandcode-go-opencode-provider",
-      name: "Command Code",
-      env: ["COMMANDCODE_API_KEY"],
-    }
-  }
-  config.provider.commandcode.models = modelsObj
-
-  const output = JSON.stringify(config, null, 2) + "\n"
-  writeFileSync(GLOBAL_CONFIG, output, "utf-8")
-  console.log(`  Updated ${GLOBAL_CONFIG}`)
 }
 
 async function main() {
-  const args = process.argv.slice(2)
-  const shouldUpdateGlobal = args.includes("--update-global")
-
   const { source, version } = await fetchLatestBundle()
   console.log(`Read CLI bundle v${version} (${(source.length / 1024).toFixed(0)} KB)`)
 
@@ -753,6 +747,10 @@ async function main() {
   const modelCount = Object.keys(models).length
   console.log(`  Found ${modelCount} models`)
 
+  console.log("Extracting reasoning efforts...")
+  const efforts = extractReasoningEfforts(source, consts)
+  console.log(`  Effort levels for ${Object.keys(efforts).length} models`)
+
   const entries: ModelEntry[] = []
 
   for (const [, model] of Object.entries(models)) {
@@ -763,10 +761,7 @@ async function main() {
     if (model.hidden) {
       console.log(`  Including free override: ${model.id}`)
     }
-    if (FREE_OVERRIDES.has(model.id)) {
-      model.name = `${model.name} (free)`
-    }
-    const entry = buildModelEntry(model, data)
+    const entry = buildModelEntry(model, data, efforts)
     if (entry) {
       entries.push(entry)
     } else {
@@ -782,21 +777,10 @@ async function main() {
   console.log(`\nWriting ${MODELS_JSON} with ${entries.length} models...`)
   writeFileSync(MODELS_JSON, JSON.stringify(entries, null, 2) + "\n", "utf-8")
 
-  const modelsObj = generateOpencodeModels(entries)
-
-  if (shouldUpdateGlobal) {
-    console.log("Updating global config...")
-    updateGlobalConfig(modelsObj)
-  }
-
   console.log("\nModel list:")
   for (const entry of entries) {
     const cost = `$${entry.cost.input}/$${entry.cost.output}`
     console.log(`  ${entry.tier.padEnd(12)} ${entry.id.padEnd(35)} ${entry.name.padEnd(25)} ${cost}`)
-  }
-
-  if (!shouldUpdateGlobal) {
-    console.log(`\nRun with --update-global to update ${GLOBAL_CONFIG}`)
   }
 
   console.log("\nDone.")

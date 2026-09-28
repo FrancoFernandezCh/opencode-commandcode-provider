@@ -79,6 +79,28 @@ test("doStream sends request body with model and messages", async () => {
   expect(body.params.messages[0].content).toBe("hi")
 })
 
+test("doStream sends reasoning_effort when the model has one", async () => {
+  const { calls, restore, respondWith } = mockFetchTrack()
+  respondWith({
+    ok: true,
+    status: 200,
+    headers: new Headers(),
+    body: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('data: {"type":"start"}\n\n'))
+        controller.close()
+      },
+    }),
+  })
+
+  const model = new CommandCodeLanguageModel(MODEL_ID, { apiKey: API_KEY, reasoningEffort: "xhigh" })
+  await model.doStream(makeCallOptions())
+  restore()
+
+  const body = JSON.parse(calls[0].options.body as string)
+  expect(body.params.reasoning_effort).toBe("xhigh")
+})
+
 test("doStream uses correct URL", async () => {
   const { calls, restore, respondWith } = mockFetchTrack()
   respondWith({

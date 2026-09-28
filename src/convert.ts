@@ -59,6 +59,7 @@ interface CCRequestEnvelope {
     temperature?: number
     top_p?: number
     top_k?: number
+    reasoning_effort?: string
   }
 }
 
@@ -174,6 +175,7 @@ function convertTools(
 export function buildRequest(
   modelId: string,
   options: LanguageModelV3CallOptions,
+  defaults: { reasoningEffort?: string } = {},
 ): CCRequestEnvelope {
   let systemPrompt = ""
   const messages: CCMessage[] = []
@@ -199,6 +201,7 @@ export function buildRequest(
   if (options.temperature !== undefined) params.temperature = options.temperature
   if (options.topP !== undefined) params.top_p = options.topP
   if (options.topK !== undefined) params.top_k = options.topK
+  if (defaults.reasoningEffort) params.reasoning_effort = defaults.reasoningEffort
 
   return {
     config: {

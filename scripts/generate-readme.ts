@@ -13,6 +13,7 @@ interface ModelEntry {
   tool_call: boolean
   cost: { input: number; output: number }
   limit: { context: number; output: number }
+  reasoning_efforts?: string[]
 }
 
 const models: ModelEntry[] = JSON.parse(readFileSync(MODELS_JSON, "utf-8"))
@@ -21,11 +22,12 @@ const rows = models.map((m) => {
   const id = `\`${m.id}\``
   const tier = m.tier === "premium" ? "premium" : "open-source"
   const ctx = m.limit.context >= 1_000_000 ? `${(m.limit.context / 1_000_000).toFixed(0)}M` : `${(m.limit.context / 1000).toFixed(0)}K`
-  return `| ${id.padEnd(42)} | ${m.name.padEnd(27)} | ${tier.padEnd(12)} | ${m.reasoning ? "yes" : "no".padEnd(3)} | ${ctx.padEnd(6)} |`
+  const efforts = (m.reasoning_efforts ?? []).join(", ") || "—"
+  return `| ${id.padEnd(42)} | ${m.name.padEnd(27)} | ${tier.padEnd(12)} | ${(m.reasoning ? "yes" : "no").padEnd(3)} | ${efforts.padEnd(28)} | ${ctx.padEnd(6)} |`
 })
 
-const tableHeader = "| Model ID | Name | Tier | Reasoning | Context |"
-const separator = "|---|---|---|---|---|"
+const tableHeader = "| Model ID | Name | Tier | Reasoning | Efforts | Context |"
+const separator = "|---|---|---|---|---|---|"
 const table = [tableHeader, separator, ...rows].join("\n")
 
 const readme = readFileSync(README, "utf-8")

@@ -211,6 +211,16 @@ test("passes through temperature, topP, topK", () => {
   expect(req.params.top_k).toBe(40)
 })
 
+test("sends reasoning_effort when provided", () => {
+  const req = buildRequest("m", makeOpts({ prompt: [{ role: "user", content: "hi" }] }), { reasoningEffort: "high" })
+  expect(req.params.reasoning_effort).toBe("high")
+})
+
+test("omits reasoning_effort when not provided", () => {
+  const req = buildRequest("m", makeOpts({ prompt: [{ role: "user", content: "hi" }] }))
+  expect(req.params).not.toHaveProperty("reasoning_effort")
+})
+
 test("defaults max_tokens to 16384 when not provided", () => {
   const req = buildRequest("m", makeOpts({ maxOutputTokens: undefined }))
   expect(req.params.max_tokens).toBe(16384)

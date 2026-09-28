@@ -1,29 +1,4 @@
-import { readFileSync } from "fs"
-import { join, dirname } from "path"
-import { fileURLToPath } from "url"
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-
-interface ModelEntry {
-  id: string
-  name: string
-  tier: "premium" | "open-source"
-  reasoning: boolean
-  tool_call: boolean
-  cost: { input: number; output: number; cache_read?: number; cache_write?: number }
-  limit: { context: number; output: number }
-}
-
-function loadModels(): ModelEntry[] {
-  const modelsPath = join(__dirname, "models.json")
-  return JSON.parse(readFileSync(modelsPath, "utf-8"))
-}
-
-function toConfigKey(id: string): string {
-  const slashIdx = id.indexOf("/")
-  const short = slashIdx >= 0 ? id.slice(slashIdx + 1) : id
-  return short.toLowerCase()
-}
+import { loadModels, toConfigKey, type ModelEntry } from "./src/catalog.js"
 
 export default async function commandcodePlugin() {
   return {
@@ -48,6 +23,11 @@ export default async function commandcodePlugin() {
           if (entry.cost.cache_read !== undefined) costObj.cache_read = entry.cost.cache_read
           if (entry.cost.cache_write !== undefined) costObj.cache_write = entry.cost.cache_write
 
+          const variants: Record<string, Record<string, string>> = {}
+          for (const effort of entry.reasoning_efforts ?? []) {
+            variants[effort] = { reasoningEffort: effort }
+          }
+
           modelsObj[key] = {
             id: entry.id,
             name: entry.name,
@@ -55,6 +35,7 @@ export default async function commandcodePlugin() {
             tool_call: entry.tool_call,
             cost: costObj,
             limit: entry.limit,
+            ...(Object.keys(variants).length > 0 ? { variants } : {}),
           }
         }
         cc.models = modelsObj
