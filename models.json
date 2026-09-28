@@ -1000,7 +1000,7 @@
   },
   {
     "id": "poolside/laguna-s-2.1-free",
-    "name": "Laguna S 2.1",
+    "name": "Laguna S 2.1 (free)",
     "tier": "open-source",
     "reasoning": true,
     "tool_call": true,
@@ -1015,7 +1015,7 @@
   },
   {
     "id": "inclusionai/ling-3.0-flash-sante:free",
-    "name": "Ling 3.0 Flash Sante",
+    "name": "Ling 3.0 Flash Sante (free)",
     "tier": "open-source",
     "reasoning": true,
     "tool_call": true,
@@ -1157,7 +1157,7 @@
   },
   {
     "id": "minimax/minimax-m2.7-free",
-    "name": "MiniMax M2.7 (Free) (free)",
+    "name": "MiniMax M2.7 (free)",
     "tier": "open-source",
     "reasoning": false,
     "tool_call": true,
@@ -1213,7 +1213,7 @@
   },
   {
     "id": "minimax/minimax-m3-free",
-    "name": "MiniMax M3 (Free) (free)",
+    "name": "MiniMax M3 (free)",
     "tier": "open-source",
     "reasoning": true,
     "tool_call": true,
@@ -1360,7 +1360,7 @@
   },
   {
     "id": "stealth/pixel-canary",
-    "name": "Pixel Canary",
+    "name": "Pixel Canary (free)",
     "tier": "open-source",
     "reasoning": true,
     "tool_call": true,
@@ -1570,7 +1570,7 @@
   },
   {
     "id": "stealth/space-bunny-alpha",
-    "name": "Space Bunny Alpha",
+    "name": "Space Bunny Alpha (free)",
     "tier": "open-source",
     "reasoning": true,
     "tool_call": true,

@@ -128,8 +128,8 @@ Available levels per model are listed in the [table below](#available-models). M
 | `moonshotai/Kimi-K2.7-Code`                | Kimi K2.7 Code              | open-source  | yes | —                            | 256K   |
 | `moonshotai/Kimi-K2.7-Code-Highspeed`      | Kimi K2.7 Code HighSpeed    | open-source  | yes | —                            | 262K   |
 | `moonshotai/Kimi-K3`                       | Kimi K3                     | open-source  | yes | low, high, max               | 1M     |
-| `poolside/laguna-s-2.1-free`               | Laguna S 2.1                | open-source  | yes | —                            | 256K   |
-| `inclusionai/ling-3.0-flash-sante:free`    | Ling 3.0 Flash Sante        | open-source  | yes | —                            | 262K   |
+| `poolside/laguna-s-2.1-free`               | Laguna S 2.1 (free)         | open-source  | yes | —                            | 256K   |
+| `inclusionai/ling-3.0-flash-sante:free`    | Ling 3.0 Flash Sante (free) | open-source  | yes | —                            | 262K   |
 | `meituan/LongCat-2.0`                      | LongCat 2.0                 | open-source  | yes | —                            | 1M     |
 | `xiaomi/mimo-v2.5`                         | MiMo V2.5                   | open-source  | no  | —                            | 1M     |
 | `xiaomi/mimo-v2.5-pro`                     | MiMo V2.5 Pro               | open-source  | no  | —                            | 1M     |
@@ -138,17 +138,17 @@ Available levels per model are listed in the [table below](#available-models). M
 | `xiaomi/mimo-v2.6-pro-ultraspeed`          | MiMo V2.6 Pro UltraSpeed    | open-source  | no  | —                            | 1M     |
 | `MiniMaxAI/MiniMax-M2.5`                   | MiniMax M2.5                | open-source  | no  | —                            | 200K   |
 | `MiniMaxAI/MiniMax-M2.7`                   | MiniMax M2.7                | open-source  | no  | —                            | 1M     |
-| `minimax/minimax-m2.7-free`                | MiniMax M2.7 (Free) (free)  | open-source  | no  | —                            | 197K   |
+| `minimax/minimax-m2.7-free`                | MiniMax M2.7 (free)         | open-source  | no  | —                            | 197K   |
 | `MiniMaxAI/MiniMax-M3`                     | MiniMax M3                  | open-source  | yes | low, medium, high            | 1M     |
 | `MiniMaxAI/MiniMax-M3-Free`                | MiniMax M3 (free)           | open-source  | yes | low, medium, high            | 1M     |
-| `minimax/minimax-m3-free`                  | MiniMax M3 (Free) (free)    | open-source  | yes | low, medium, high            | 1M     |
+| `minimax/minimax-m3-free`                  | MiniMax M3 (free)           | open-source  | yes | low, medium, high            | 1M     |
 | `meta/muse-spark-1.1`                      | Muse Spark 1.1              | open-source  | yes | low, medium, high, xhigh     | 1M     |
 | `meta/muse-spark-1.2`                      | Muse Spark 1.2              | open-source  | yes | low, medium, high, xhigh     | 1M     |
 | `meta/muse-spark-1.2-contributor`          | Muse Spark 1.2 Contributor  | open-source  | yes | low, medium, high, xhigh     | 1M     |
 | `meta/muse-spark-1.3`                      | Muse Spark 1.3              | open-source  | yes | low, medium, high, xhigh, max | 1M     |
 | `meta/muse-spark-1.3-contributor`          | Muse Spark 1.3 Contributor  | open-source  | yes | low, medium, high, xhigh     | 1M     |
 | `nvidia/nemotron-3-ultra-550b-a55b`        | Nemotron 3 Ultra            | open-source  | yes | —                            | 1M     |
-| `stealth/pixel-canary`                     | Pixel Canary                | open-source  | yes | low, medium, xhigh           | 262K   |
+| `stealth/pixel-canary`                     | Pixel Canary (free)         | open-source  | yes | low, medium, xhigh           | 262K   |
 | `Qwen/Qwen3.6-Max-Preview`                 | Qwen 3.6 Max Preview        | open-source  | yes | —                            | 1M     |
 | `Qwen/Qwen3.6-Plus`                        | Qwen 3.6 Plus               | open-source  | yes | —                            | 1M     |
 | `Qwen/Qwen3.7-Flash`                       | Qwen 3.7 Flash              | open-source  | yes | —                            | 1M     |
@@ -159,7 +159,7 @@ Available levels per model are listed in the [table below](#available-models). M
 | `Qwen/Qwen3.8-Max`                         | Qwen 3.8 Max                | open-source  | yes | low, medium, xhigh           | 1M     |
 | `Qwen/Qwen3.8-Max-0902`                    | Qwen 3.8 Max 0902           | open-source  | yes | low, medium, xhigh           | 1M     |
 | `Qwen/Qwen3.8-Omni-Flash`                  | Qwen 3.8 Omni Flash         | open-source  | yes | low, medium, xhigh           | 1M     |
-| `stealth/space-bunny-alpha`                | Space Bunny Alpha           | open-source  | yes | low, medium, high            | 1M     |
+| `stealth/space-bunny-alpha`                | Space Bunny Alpha (free)    | open-source  | yes | low, medium, high            | 1M     |
 | `stepfun/Step-3.5-Flash`                   | Step 3.5 Flash              | open-source  | yes | —                            | 262K   |
 | `stepfun/Step-3.7-Flash`                   | Step 3.7 Flash              | open-source  | yes | —                            | 256K   |
 | `stepfun/Step-5-Preview`                   | Step 5 Preview              | open-source  | yes | low, medium, high            | 1M     |

@@ -25,3 +25,8 @@ export function toConfigKey(id: string): string {
   const short = slashIdx >= 0 ? id.slice(slashIdx + 1) : id
   return short.toLowerCase()
 }
+
+export function normalizeFreeModelName(name: string, isFree: boolean): string {
+  if (!isFree) return name
+  return `${name.replace(/(?:\s*\(free\))+\s*$/i, "").trimEnd()} (free)`
+}

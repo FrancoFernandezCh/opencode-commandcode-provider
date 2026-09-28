@@ -1,7 +1,14 @@
 import { expect, test } from "bun:test"
 import plugin, { buildV2Models } from "../../v2/index.ts"
 import serverEntrypoint from "../../server.ts"
-import { loadModels, toConfigKey } from "../../src/catalog.js"
+import { loadModels, normalizeFreeModelName, toConfigKey } from "../../src/catalog.js"
+
+test("free model labels have exactly one (free) suffix", () => {
+  expect(normalizeFreeModelName("Pixel Canary", true)).toBe("Pixel Canary (free)")
+  expect(normalizeFreeModelName("MiniMax M3 (free)", true)).toBe("MiniMax M3 (free)")
+  expect(normalizeFreeModelName("MiniMax M3 (Free) (free)", true)).toBe("MiniMax M3 (free)")
+  expect(normalizeFreeModelName("Claude Sonnet", false)).toBe("Claude Sonnet")
+})
 
 test("V2 models preserve OpenCode IDs and upstream model IDs", () => {
   const models = buildV2Models([

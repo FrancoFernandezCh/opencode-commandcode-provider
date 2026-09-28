@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from "fs"
 import { join } from "path"
 import { execSync } from "child_process"
+import { normalizeFreeModelName } from "../src/catalog.js"
 
 const PROJECT_ROOT = join(import.meta.dir, "..")
 const MODELS_JSON = join(PROJECT_ROOT, "models.json")
@@ -717,7 +718,7 @@ function buildModelEntry(
 
   return {
     id: entry.id,
-    name: entry.name,
+    name: normalizeFreeModelName(entry.name, cost.input === 0 && cost.output === 0),
     tier: tierFor(entry.id, entry.provider, data),
     reasoning: entry.reasoning || (entry.reasoningEfforts?.length ?? 0) > 0 || (levels?.length ?? 0) > 0,
     tool_call: true,
@@ -759,9 +760,6 @@ async function main() {
     }
     if (model.hidden) {
       console.log(`  Including free override: ${model.id}`)
-    }
-    if (FREE_OVERRIDES.has(model.id)) {
-      model.name = `${model.name} (free)`
     }
     const entry = buildModelEntry(model, data, efforts)
     if (entry) {
