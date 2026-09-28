@@ -148,6 +148,7 @@ Available levels per model are listed in the [table below](#available-models). M
 | `meta/muse-spark-1.3`                      | Muse Spark 1.3              | open-source  | yes | low, medium, high, xhigh, max | 1M     |
 | `meta/muse-spark-1.3-contributor`          | Muse Spark 1.3 Contributor  | open-source  | yes | low, medium, high, xhigh     | 1M     |
 | `nvidia/nemotron-3-ultra-550b-a55b`        | Nemotron 3 Ultra            | open-source  | yes | —                            | 1M     |
+| `stealth/pixel-canary`                     | Pixel Canary                | open-source  | yes | low, medium, xhigh           | 262K   |
 | `Qwen/Qwen3.6-Max-Preview`                 | Qwen 3.6 Max Preview        | open-source  | yes | —                            | 1M     |
 | `Qwen/Qwen3.6-Plus`                        | Qwen 3.6 Plus               | open-source  | yes | —                            | 1M     |
 | `Qwen/Qwen3.7-Flash`                       | Qwen 3.7 Flash              | open-source  | yes | —                            | 1M     |
@@ -158,7 +159,8 @@ Available levels per model are listed in the [table below](#available-models). M
 | `Qwen/Qwen3.8-Max`                         | Qwen 3.8 Max                | open-source  | yes | low, medium, xhigh           | 1M     |
 | `Qwen/Qwen3.8-Max-0902`                    | Qwen 3.8 Max 0902           | open-source  | yes | low, medium, xhigh           | 1M     |
 | `Qwen/Qwen3.8-Omni-Flash`                  | Qwen 3.8 Omni Flash         | open-source  | yes | low, medium, xhigh           | 1M     |
-| `stepfun/Step-3.5-Flash`                   | Step 3.5 Flash              | open-source  | yes | —                            | 1M     |
+| `stealth/space-bunny-alpha`                | Space Bunny Alpha           | open-source  | yes | low, medium, high            | 1M     |
+| `stepfun/Step-3.5-Flash`                   | Step 3.5 Flash              | open-source  | yes | —                            | 262K   |
 | `stepfun/Step-3.7-Flash`                   | Step 3.7 Flash              | open-source  | yes | —                            | 256K   |
 | `stepfun/Step-5-Preview`                   | Step 5 Preview              | open-source  | yes | low, medium, high            | 1M     |
 | `tencent/hy3-paid`                         | Tencent Hy3                 | open-source  | yes | —                            | 262K   |

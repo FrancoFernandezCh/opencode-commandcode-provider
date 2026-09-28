@@ -279,19 +279,25 @@ function extractProviderConstants(source: string): Record<string, string> {
 
 function extractSpecConstants(source: string): Record<string, string> {
   try {
-    const chatMatch = source.match(/var\s+([$A-Za-z_][\w$]*)="chatComplete"/)
+    // Spec constants share a var statement with the model catalog, e.g.
+    // `var aD=/regex/,lD="chatComplete",cD="responses",dD="...",uD={...}`.
+    const chatMatch = source.match(/(?:var\s+|,\s*)([$A-Za-z_][\w$]*)="chatComplete"/)
     if (chatMatch) {
       const chatVar = chatMatch[1]
-      const catMatch = source.match(/([$A-Za-z_][\w$]*)=\{[A-Z0-9_]+:\{id:"claude/)
-      if (catMatch) {
-        const catVar = catMatch[1]
-        const specBlockStart = source.indexOf(`var ${chatVar}="chatComplete"`)
-        const specBlockEnd = source.indexOf(`${catVar}={` , specBlockStart)
-        if (specBlockStart >= 0 && specBlockEnd >= 0) {
-          const block = source.slice(specBlockStart, specBlockEnd)
+      const catVar = findCatalogVar(source)
+      const catIdx = catVar ? source.indexOf(`${catVar}={`) : -1
+      if (chatVar && catIdx > chatMatch.index) {
+        // Start of the var statement holding the chatComplete declaration.
+        const specBlockStart = source.lastIndexOf("var ", chatMatch.index)
+        if (specBlockStart >= 0) {
+          const block = source.slice(specBlockStart, catIdx)
           const out: Record<string, string> = {}
           for (const m of block.matchAll(/([$A-Za-z_][\w$]*)="([^"]+)"/g)) out[m[1]] = m[2]
-          if (Object.keys(out).length > 0) return out
+          // aliases like sD=KO
+          for (const m of block.matchAll(/([$A-Za-z_][\w$]*)=([$A-Za-z_][\w$]*)\s*(?=[,;}\]])/g)) {
+            if (out[m[2]] && !out[m[1]]) out[m[1]] = out[m[2]]
+          }
+          if (chatVar in out) return out
         }
       }
     }
